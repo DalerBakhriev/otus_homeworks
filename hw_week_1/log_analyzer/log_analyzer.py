@@ -281,12 +281,5 @@ def generate_report(default_config: Dict[str, Union[int, str]]) -> NoReturn:
 
 
 if __name__ == "__main__":
-    cnt = 0
-    with gzip.open("./nginx_logs/nginx-access-ui.log-20170630.gz", "rt", encoding="utf-8") as f:
-        with open("./nginx_logs/test_sample.txt", "w", encoding="utf-8") as f2:
-            for line in f:
-                f2.write(line)
-                cnt += 1
-                if cnt == 1000:
-                    break
+    generate_report(default_config=CONFIG)
 
