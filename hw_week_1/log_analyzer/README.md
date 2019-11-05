@@ -23,8 +23,8 @@ python log_analyzer.py --config /path/to/your/own/config.json
 
 -REPORT_SIZE - number of unique urls in report  
 -REPORT_DIR - directory where to save reports  
--LOG_DIR - directory with nginx logs 
--LOG_FILE - path to fila with analyzer logs
+-LOG_DIR - directory with nginx logs  
+-LOG_FILE - path to fila with analyzer logs  
 -FAILURES_PERCENT_THRESHOLD - threshold of errors during parsing lines of log file.
 if the percentage of errors is greater than the threshold script will write it to the log and exit.
 
