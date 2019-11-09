@@ -4,6 +4,8 @@ import json
 import logging
 import os
 import re
+from argparse import ArgumentParser, FileType
+from copy import deepcopy
 from statistics import median
 from string import Template
 from typing import (
@@ -18,11 +20,6 @@ from typing import (
 )
 
 from models import Config, LatestLogFile, SingleLogParserResult
-from utils import (
-    configure_cli_parser,
-    configure_logging,
-    get_config_parameters
-)
 
 CONFIG = {
     "REPORT_SIZE": 1000,
@@ -36,30 +33,56 @@ DATE_FORMAT_IN_LOG_FILE_NAME = "%Y%m%d"
 DATE_FORMAT_FOR_REPORT = "%Y.%m.%d"
 NUM_SIGNS_FOR_STATS = 3
 
+LOG_FILE_PATTERN = re.compile(r"nginx-access-ui.log-(\d{8}).(gz|log|txt)$")
 
-def find_latest_log(log_dir: str) -> Optional[LatestLogFile]:
+
+class FailuresPercentageError(Exception):
+    pass
+
+
+def get_config_parameters(
+        default_config: Dict[str, Union[int, str]],
+        config_from_file_: Dict[str, Union[int, str]]
+) -> Optional[Config]:
+
+    """
+    Parse config parameters such as
+    :param default_config: dictionary with default config parameters
+    :param config_from_file_: optional config file
+    :return: final config after merging config from file and default config with priority on file config
+    """
+
+    final_config = deepcopy(default_config)
+    final_config.update(config_from_file_)
+
+    return Config(
+        report_size=final_config["REPORT_SIZE"],
+        report_dir=final_config["REPORT_DIR"],
+        log_dir=final_config["LOG_DIR"],
+        log_file=final_config["LOG_FILE"],
+        failures_percent_threshold=final_config["FAILURES_PERCENT_THRESHOLD"]
+    )
+
+
+def find_latest_log(log_dir: str, log_file_pattern: re.Pattern) -> Optional[LatestLogFile]:
 
     """
     Finds log with latest creation date
     :param log_dir: directory with log files
+    :param log_file_pattern: pattern for file name regular expression
     :return: LatestLogFile object with information about path, creation date,  file extension
     """
 
-    log_file_pattern = re.compile(r"nginx-access-ui.log-\d{8}.(gz|log|txt)$")
-    date_pattern = re.compile(r"\d{8}")
     current_max_date = None
     current_file_name = None
 
     for file in os.scandir(log_dir):
-        log_pattern_matches = re.findall(log_file_pattern, file.name)
+        log_pattern_matches = re.search(log_file_pattern, file.name)
         if log_pattern_matches:
-            creation_date_as_string = re.search(date_pattern, file.name).group(0)
+            creation_date_as_string = log_pattern_matches.group(1)
             creation_date = datetime.datetime.strptime(creation_date_as_string, DATE_FORMAT_IN_LOG_FILE_NAME)
 
-            if current_max_date is None:
-                current_max_date = creation_date
-                current_file_name = file.name
-            elif creation_date > current_max_date:
+            if current_max_date is None or creation_date > current_max_date:
                 current_max_date = creation_date
                 current_file_name = file.name
 
@@ -71,6 +94,18 @@ def find_latest_log(log_dir: str) -> Optional[LatestLogFile]:
             date_of_creation=current_max_date,
             extension=file_extension
         )
+
+
+def get_log_file_opener(log_file: LatestLogFile) -> Callable:
+
+    """
+    Retursn write function to open file. Could be gzip.open or open
+    :param log_file: latest file with nginx logs
+    :return: function to open log file
+    """
+    log_file_opener = gzip.open if log_file.extension == ".gz" else open
+
+    return log_file_opener
 
 
 def parse_log_file(log_file: LatestLogFile,
@@ -135,13 +170,13 @@ def prepare_stats_for_json(
 
 def calculate_url_stats(
         parsed_line_gen: Iterable[SingleLogParserResult],
-        conf: Config
+        cfg: Config
 ) -> Tuple[Dict[str, Dict[str, Union[int, float]]], float]:
 
     """
     Calculates url stats for report
     :param parsed_line_gen: generator of parsed lines result
-    :param conf application config
+    :param cfg application config
     :return: url stats for log file
     """
 
@@ -167,7 +202,15 @@ def calculate_url_stats(
         all_requests_time += single_line_result.time
 
     failures_percentage = round(100 * num_failures / num_requests)
+    if failures_percentage > cfg.failures_percent_threshold:
+        logging.error(
+            "Failures percentage limit exceeded: threshold is %f, errors percentage is %f",
+            cfg.failures_percent_threshold,
+            failures_percentage
+        )
+        raise FailuresPercentageError
 
+    logging.info("Errors percentage for line parsing is %f", failures_percentage)
     result_by_url = dict()
     for url in calculations_by_url:
         num_times = calculations_by_url[url]["num_times"]
@@ -187,12 +230,12 @@ def calculate_url_stats(
             result_by_url.items(),
             key=lambda url_stats_: url_stats_[1]["time_sum"],
             reverse=True
-        )[:conf.report_size]
+        )[:cfg.report_size]
     )
 
     url_stats_for_json = prepare_stats_for_json(url_stats=url_stats)
 
-    return url_stats_for_json, failures_percentage
+    return url_stats_for_json
 
 
 def render_report(url_stats_for_json: Dict[str, Dict[str, Union[int, float]]],
@@ -217,62 +260,48 @@ def render_report(url_stats_for_json: Dict[str, Dict[str, Union[int, float]]],
         prepared_report.write(fulfilled_template)
 
 
-def generate_report(default_config: Dict[str, Union[int, str]]) -> NoReturn:
+def generate_report(config: Config, log_file_pattern: re.Pattern) -> NoReturn:
 
     """
     Generates report for the latest nginx log file
-    :param default_config: default application config
+    :param config: default application config
+    :param log_file_pattern: pattern for file name regular expression
     :return:
     """
 
-    cli_parser = configure_cli_parser()
-    args = cli_parser.parse_args()
-    config_file_path = args.config
-
-    conf = get_config_parameters(
-        default_config=default_config,
-        config_file_path=config_file_path
-    )
-
-    configure_logging(path_to_log_file=conf.log_file)
-
     try:
-        logging.info("Trying to find latest log file from directory %s", conf.log_dir)
-        latest_log_file = find_latest_log(log_dir=conf.log_dir)
+        logging.info("Trying to find latest log file from directory %s", config.log_dir)
+        latest_log_file = find_latest_log(log_dir=config.log_dir, log_file_pattern=log_file_pattern)
+
+        if latest_log_file is None:
+            logging.info("No log file to generate report for")
+            return
+
         logging.info("Latest log file is %s", latest_log_file.path)
 
         logging.info("Generating report name for log file: %s", latest_log_file.path)
-        report_name = generate_report_name(cfg=conf, log_file=latest_log_file)
+        report_name = generate_report_name(cfg=config, log_file=latest_log_file)
         logging.info("Report name is %s", report_name)
 
         if os.path.exists(report_name):
             logging.info("Report for this log is already done")
             return
 
-        if latest_log_file is None:
-            logging.info("No log file to generate report for")
-            return
-
-        log_file_opener = gzip.open if latest_log_file.extension == ".gz" else open
+        log_file_opener = get_log_file_opener(log_file=latest_log_file)
 
         logging.info("Started to parse log file: %s", latest_log_file.path)
-        parsed_line_gen = parse_log_file(log_file=latest_log_file, log_file_opener=log_file_opener)
+        parsed_line_gen = parse_log_file(
+            log_file=latest_log_file,
+            log_file_opener=log_file_opener
+        )
 
         logging.info("Started to calculate stats for url from file: %s", latest_log_file.path)
-        url_stats_for_report, failures_percent = calculate_url_stats(parsed_line_gen=parsed_line_gen, conf=conf)
+        url_stats_for_report = calculate_url_stats(parsed_line_gen=parsed_line_gen, cfg=config)
         logging.info("Successfully calculated stats by url from file: %s", latest_log_file.path)
-
-        if failures_percent > conf.failures_percent_threshold:
-            logging.error(
-                "Percent of failures during line parsing is %f, threshold is %f. Limit exceeded.",
-                failures_percent,
-                conf.failures_percent_threshold
-            )
-            return
 
         logging.info("Rendering template for report %s", report_name)
         render_report(url_stats_for_json=url_stats_for_report,
-                      cfg=conf,
+                      cfg=config,
                       report_name=report_name)
         logging.info("Successfully generated report %s", report_name)
 
@@ -281,5 +310,27 @@ def generate_report(default_config: Dict[str, Union[int, str]]) -> NoReturn:
 
 
 if __name__ == "__main__":
-    generate_report(default_config=CONFIG)
+
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--config",
+        type=FileType("rt"),
+        default="./config.json",
+        help="Path to config file"
+    )
+    args = parser.parse_args()
+    config_from_file = json.load(args.config)
+
+    conf = get_config_parameters(
+        default_config=CONFIG,
+        config_from_file_=config_from_file
+    )
+
+    logging.basicConfig(
+        filename=conf.log_file,
+        format="[%(asctime)s] %(levelname).1s %(message)s",
+        datefmt="%Y.%m.%d %H:%M:%S",
+        level=logging.INFO
+    )
+    generate_report(config=conf, log_file_pattern=LOG_FILE_PATTERN)
 

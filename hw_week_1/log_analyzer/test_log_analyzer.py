@@ -3,6 +3,7 @@ import os
 import unittest
 from typing import NoReturn, Tuple
 
+from log_analyzer import LOG_FILE_PATTERN
 from log_analyzer import find_latest_log, parse_log_file, calculate_url_stats
 from models import Config, LatestLogFile
 
@@ -65,7 +66,10 @@ class TestLatestLogFileFinder(unittest.TestCase):
              "nginx-access-ui.log-20191104.gz")
         )
 
-        latest_log_file = find_latest_log(log_dir=self.test_folder)
+        latest_log_file = find_latest_log(
+            log_dir=self.test_folder,
+            log_file_pattern=LOG_FILE_PATTERN
+        )
 
         right_file_name = os.path.join(self.test_folder, "nginx-access-ui.log-20191104.gz")
         right_date = datetime.datetime(year=2019, month=11, day=4)
@@ -93,7 +97,10 @@ class TestLatestLogFileFinder(unittest.TestCase):
              "nginx-access-ui.log-20191104.bz2")
         )
 
-        latest_log_file = find_latest_log(log_dir=self.test_folder)
+        latest_log_file = find_latest_log(
+            log_dir=self.test_folder,
+            log_file_pattern=LOG_FILE_PATTERN
+        )
 
         right_file_name = os.path.join(self.test_folder, "nginx-access-ui.log-20160101.txt")
         right_date = datetime.datetime(year=2016, month=1, day=1)
@@ -119,7 +126,10 @@ class TestLatestLogFileFinder(unittest.TestCase):
              "nginx-access-ui.log-20191104.bz2")
         )
 
-        latest_log_file = find_latest_log(log_dir=self.test_folder)
+        latest_log_file = find_latest_log(
+            log_dir=self.test_folder,
+            log_file_pattern=LOG_FILE_PATTERN
+        )
 
         self.assertIsNone(latest_log_file)
 
@@ -150,10 +160,14 @@ class TestUrlStatsCalculator(unittest.TestCase):
         Tests if url stats size coincides with report size from config
         :return:
         """
-        parsed_line_gen = parse_log_file(log_file=TestUrlStatsCalculator.LOG_FILE,
-                                         log_file_opener=open)
-        url_stats, num_fails = calculate_url_stats(parsed_line_gen=parsed_line_gen,
-                                                   conf=TestUrlStatsCalculator.TEST_CONFIG)
+        parsed_line_gen = parse_log_file(
+            log_file=TestUrlStatsCalculator.LOG_FILE,
+            log_file_opener=open
+        )
+        url_stats = calculate_url_stats(
+            parsed_line_gen=parsed_line_gen,
+            cfg=TestUrlStatsCalculator.TEST_CONFIG
+        )
 
         with self.subTest():
             self.assertEqual(TestUrlStatsCalculator.TEST_CONFIG.report_size, len(url_stats))
