@@ -186,8 +186,10 @@ def calculate_url_stats(
     calculations_by_url = dict()
 
     for single_line_result in parsed_line_gen:
+
+        num_requests += 1
+
         if single_line_result.is_failed:
-            num_requests += 1
             num_failures += 1
             continue
 
@@ -198,7 +200,6 @@ def calculate_url_stats(
         else:
             calculations_by_url[curr_url]["num_times"] += 1
             calculations_by_url[curr_url]["time"].append(single_line_result.time)
-        num_requests += 1
         all_requests_time += single_line_result.time
 
     failures_percentage = round(100 * num_failures / num_requests)
