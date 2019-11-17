@@ -1,34 +1,37 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""
+Реализуйте функцию best_hand, которая принимает на вход
+покерную "руку" (hand) из 7ми карт и возвращает лучшую
+(относительно значения, возвращаемого hand_rank)
+"руку" из 5ти карт. У каждой карты есть масть(suit) и
+ранг(rank)
+Масти: трефы(clubs, C), пики(spades, S), червы(hearts, H), бубны(diamonds, D)
+Ранги: 2, 3, 4, 5, 6, 7, 8, 9, 10 (ten, T), валет (jack, J), дама (queen, Q), король (king, K), туз (ace, A)
+Например: AS - туз пик (ace of spades), TH - дестяка черв (ten of hearts), 3C - тройка треф (three of clubs)
 
-# -----------------
-# Реализуйте функцию best_hand, которая принимает на вход
-# покерную "руку" (hand) из 7ми карт и возвращает лучшую
-# (относительно значения, возвращаемого hand_rank)
-# "руку" из 5ти карт. У каждой карты есть масть(suit) и
-# ранг(rank)
-# Масти: трефы(clubs, C), пики(spades, S), червы(hearts, H), бубны(diamonds, D)
-# Ранги: 2, 3, 4, 5, 6, 7, 8, 9, 10 (ten, T), валет (jack, J), дама (queen, Q), король (king, K), туз (ace, A)
-# Например: AS - туз пик (ace of spades), TH - дестяка черв (ten of hearts), 3C - тройка треф (three of clubs)
+Задание со *
+Реализуйте функцию best_wild_hand, которая принимает на вход
+покерную "руку" (hand) из 7ми карт и возвращает лучшую
+(относительно значения, возвращаемого hand_rank)
+"руку" из 5ти карт. Кроме прочего в данном варианте "рука"
+может включать джокера. Джокеры могут заменить карту любой
+масти и ранга того же цвета, в колоде два джокера.
+Черный джокер '?B' может быть использован в качестве треф
+или пик любого ранга, красный джокер '?R' - в качестве черв и бубен
+любого ранга.
 
-# Задание со *
-# Реализуйте функцию best_wild_hand, которая принимает на вход
-# покерную "руку" (hand) из 7ми карт и возвращает лучшую
-# (относительно значения, возвращаемого hand_rank)
-# "руку" из 5ти карт. Кроме прочего в данном варианте "рука"
-# может включать джокера. Джокеры могут заменить карту любой
-# масти и ранга того же цвета, в колоде два джокера.
-# Черный джокер '?B' может быть использован в качестве треф
-# или пик любого ранга, красный джокер '?R' - в качестве черв и бубен
-# любого ранга.
+Одна функция уже реализована, сигнатуры и описания других даны.
+Вам наверняка пригодится itertools.
+Можно свободно определять свои функции и т.п.
+"""
 
-# Одна функция уже реализована, сигнатуры и описания других даны.
-# Вам наверняка пригодится itertools.
-# Можно свободно определять свои функции и т.п.
-# -----------------
 from typing import Dict, List, Optional, Tuple, Union
 from collections import Counter
 import itertools as it
+from copy import deepcopy
+
+JOKER_RANK = 15
+NUM_CARDS_IN_POKER_HAND = 5
+JOKER_CARD = "?"
 
 RANKS_MAPPINGS = {
     "2": 2,
@@ -43,7 +46,8 @@ RANKS_MAPPINGS = {
     "J": 11,
     "Q": 12,
     "K": 13,
-    "A": 14
+    "A": 14,
+    JOKER_CARD: JOKER_RANK
 }
 
 
@@ -107,12 +111,10 @@ def straight(ranks: List[int]) -> bool:
     где у 5ти карт ранги идут по порядку (стрит)
     """
 
-    for _, consecutive_ranks in it.groupby(
-            enumerate(ranks),
-            key=lambda x: x[1] - x[0]
-    ):
-        if len(tuple(consecutive_ranks)) == 5:
-            return True
+    right_sequence = tuple(range(ranks[0], ranks[-1] + 1))
+    diff = set(right_sequence) - set(ranks)
+    if not diff and len(right_sequence) == NUM_CARDS_IN_POKER_HAND:
+        return True
 
     return False
 
@@ -120,14 +122,19 @@ def straight(ranks: List[int]) -> bool:
 def get_all_ranks_with_n_freq(n: int, ranks: List[int]) -> Tuple[int]:
 
     """
-
-    :param n:
-    :param ranks:
-    :return:
+    Расчитывает ранги карт, которые встречались заданное количество раз
+    :param n: заданное количество раз, которое должна встречаться карта
+    :param ranks: список рангов карт
+    :return: ранги которые встречались заданное количество раз
     """
 
     ranks_freq = Counter(ranks)
-    ranks_with_n_freq = tuple(filter(lambda card: ranks_freq[card] == n, ranks_freq))
+    ranks_with_n_freq = tuple(
+        filter(
+            lambda card_rank: ranks_freq[card_rank] == n,
+            ranks_freq
+        )
+    )
 
     return ranks_with_n_freq
 
@@ -143,7 +150,7 @@ def kind(n: int, ranks: List[int]) -> Optional[int]:
     if not ranks_with_freq_n:
         return
 
-    return sorted(ranks_with_freq_n)[0]
+    return sorted(ranks_with_freq_n, reverse=True)[0]
 
 
 def two_pair(ranks: List[int]) -> Optional[Tuple[int, int]]:
@@ -160,17 +167,17 @@ def two_pair(ranks: List[int]) -> Optional[Tuple[int, int]]:
     return ranks_with_freq_2
 
 
-def best_hand(hand: Tuple[str]):
+def best_hand(hand: Tuple[str]) -> List[str]:
 
     """
     Из "руки" в 7 карт возвращает лучшую "руку" в 5 карт
     """
 
-    hands_ranks = dict()
-    for poker_hand in it.combinations(hand, 5):
-        hands_ranks[poker_hand] = hand_rank(poker_hand)
+    hands_ranks = list()
+    for poker_hand in it.combinations(hand, NUM_CARDS_IN_POKER_HAND):
+        hands_ranks.append(poker_hand)
 
-    return sorted(hands_ranks, key=lambda hand_: hands_ranks[hand_], reverse=True)[0]
+    return max(hands_ranks, key=hand_rank)
 
 
 def best_wild_hand(hand: Tuple[str]):
@@ -178,8 +185,34 @@ def best_wild_hand(hand: Tuple[str]):
     """
     best_hand но с джокерами
     """
+    hands_ranks = list()
+    for poker_hand in it.combinations(hand, NUM_CARDS_IN_POKER_HAND):
 
-    return
+        if JOKER_RANK not in card_ranks(hand=hand, ranks_mappings=RANKS_MAPPINGS):
+            hands_ranks.append(poker_hand)
+            continue
+
+        hand_without_jokers = [card for card in poker_hand if card[0] != JOKER_CARD]
+        jokers_in_hand = [card for card in poker_hand if card[0] == JOKER_CARD]
+        jokers_suits = {"?B": ("C", "S"), "?R": ("H", "D")}
+
+        jokers_possible_appearances = list()
+
+        for joker in jokers_in_hand:
+            current_joker_appearances = tuple([
+                f"{rank_}{suit_}" for rank_, suit_ in it.product(
+                    [rank for rank in RANKS_MAPPINGS if RANKS_MAPPINGS[rank] != JOKER_RANK],
+                    jokers_suits[joker]
+                ) if f"{rank_}{suit_}" not in hand_without_jokers
+            ])
+            jokers_possible_appearances.append(current_joker_appearances)
+
+        for possible_joker_combinations in it.product(*jokers_possible_appearances):
+            curr_hand = deepcopy(hand_without_jokers)
+            curr_hand.extend(possible_joker_combinations)
+            hands_ranks.append(tuple(curr_hand))
+
+    return max(hands_ranks, key=hand_rank)
 
 
 def test_best_hand():
@@ -206,5 +239,4 @@ def test_best_wild_hand():
 
 if __name__ == '__main__':
     test_best_hand()
-
-
+    test_best_wild_hand()
