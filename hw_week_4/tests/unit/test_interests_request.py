@@ -157,7 +157,5 @@ def test_invalid_date_interests_request(param_test_invalid_date_interests_reques
         store=test_store
     )
     assert code == api.INVALID_REQUEST
-    assert "error" in response
-    errors = json.loads(response["error"])
-    assert "date" in errors
-    assert len(errors) == 1
+    assert "date" in response
+    assert len(response) == 1

@@ -249,10 +249,8 @@ def test_invalid_phone_score_request(param_test_invalid_phone_score_request):
         store=KeyValueTestStorage()
     )
     assert code == api.INVALID_REQUEST
-    assert "error" in response
-    errors = json.loads(response["error"])
-    assert "phone" in errors
-    assert len(errors) == 1
+    assert "phone" in response
+    assert len(response) == 1
 
 
 def test_invalid_gender_score_request(param_test_invalid_gender_score_request):
@@ -273,11 +271,8 @@ def test_invalid_gender_score_request(param_test_invalid_gender_score_request):
         store=KeyValueTestStorage()
     )
     assert code == api.INVALID_REQUEST
-    assert "error" in response
-    errors = json.loads(response["error"])
-    assert "gender" in errors
-    print(errors)
-    assert len(errors) == 1
+    assert "gender" in response
+    assert len(response) == 1
 
 
 def test_invalid_birthday_score_request(param_test_invalid_birthday_score_request):
@@ -298,8 +293,6 @@ def test_invalid_birthday_score_request(param_test_invalid_birthday_score_reques
         store=KeyValueTestStorage()
     )
     assert code == api.INVALID_REQUEST
-    assert "error" in response
-    errors = json.loads(response["error"])
-    assert "birthday" in errors
-    assert len(errors) == 1
+    assert "birthday" in response
+    assert len(response) == 1
 

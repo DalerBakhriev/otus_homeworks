@@ -7,11 +7,18 @@ import logging
 import uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from optparse import OptionParser
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union
+)
 
 from dateutil.relativedelta import relativedelta
+
 from scoring import get_score, get_interests
-from store import KeyValueStorage
 
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
@@ -57,10 +64,11 @@ class BaseField:
     def __set_name__(self, owner, name: str):
         self.name = name
 
+    def _check_required_and_nullable(self, value):
 
-class CharField(BaseField):
-
-    def __set__(self, instance: Union[MethodRequest, OnlineScoreRequest], value: str):
+        """
+        Checks required and nullable fields and values
+        """
 
         if self.required and value is None:
             raise ValueError(f"Field {self.name} is required")
@@ -68,6 +76,12 @@ class CharField(BaseField):
         if not self.nullable and value in ("", (), [], {}):
             raise ValueError(f"Field {self.name} is not nullable but empty value found")
 
+
+class CharField(BaseField):
+
+    def __set__(self, instance: Union[MethodRequest, OnlineScoreRequest], value: str):
+
+        self._check_required_and_nullable(value)
         if value is not None and not isinstance(value, str):
             raise ValueError(f"value should be str, not {type(value)}")
         instance.__dict__[self.name] = value
@@ -86,11 +100,7 @@ class ArgumentsField(BaseField):
 
     def __set__(self, instance: MethodRequest, arguments: Dict[str, Union[int, str]]):
 
-        if self.required and arguments is None:
-            raise ValueError(f"Field {self.name} is required")
-
-        if not self.nullable and arguments in ("", (), [], {}):
-            raise ValueError(f"Field {self.name} is not nullable but empty value found")
+        self._check_required_and_nullable(value=arguments)
         instance.__dict__[self.name] = arguments
 
 
@@ -98,11 +108,7 @@ class EmailField(CharField):
 
     def __set__(self, instance: OnlineScoreRequest, email: Optional[str]):
 
-        if self.required and email is None:
-            raise ValueError(f"Field {self.name} is required")
-
-        if not self.nullable and email in ("", (), [], {}):
-            raise ValueError(f"Field {self.name} is not nullable but empty value found")
+        self._check_required_and_nullable(value=email)
 
         if email is not None and "@" not in email:
             raise ValueError("Email should contain @")
@@ -116,16 +122,12 @@ class PhoneField(BaseField):
 
     def __set__(self, instance: OnlineScoreRequest, phone_num: Optional[Union[int, str]]):
 
-        if self.required and phone_num is None:
-            raise ValueError(f"Field {self.name} is required")
-
-        if not self.nullable and phone_num in ("", (), [], {}):
-            raise ValueError(f"Field {self.name} is not nullable but empty value found")
+        self._check_required_and_nullable(value=phone_num)
 
         if phone_num is not None:
             if not isinstance(phone_num, (int, str)):
                 raise ValueError(
-                    f"Phone number should be one of int, str, not {type(phone_num)}"
+                    f"Phone number should be one of int, str, not {type(phone_num)}",
                 )
 
             if (phone_num_len := len(str(phone_num))) != PhoneField.PHONE_NUM_LENGTH:
@@ -136,8 +138,8 @@ class PhoneField(BaseField):
 
             if not (phone_num_str := str(phone_num)).startswith(PhoneField.PHONE_NUM_START_VALUE):
                 raise ValueError(
-                    f"Phone number should start with "
-                    f"{PhoneField.PHONE_NUM_START_VALUE}, not {phone_num_str[0]}"
+                    f"Phone number length should start with "
+                    f"{PhoneField.PHONE_NUM_START_VALUE}, not {phone_num_str[0]}",
                 )
         instance.__dict__[self.name] = phone_num
 
@@ -146,39 +148,27 @@ class DateField(BaseField):
 
     def __set__(self, instance: ClientsInterestsRequest, date_value: Optional[str]):
 
-        if self.required and date_value is None:
-            raise ValueError(f"Field {self.name} is required")
-
-        if not self.nullable and date_value in ("", (), [], {}):
-            raise ValueError(f"Field {self.name} is not nullable but empty value found")
+        self._check_required_and_nullable(value=date_value)
 
         if date_value is not None:
-            current_date = datetime.datetime.today()
-            date_value_as_date = datetime.datetime.strptime(date_value, DATE_FORMAT)
-
-            if date_value_as_date > current_date:
-                raise ValueError(
-                    f"Date can't be later than current date: {current_date}"
-                )
+            datetime.datetime.strptime(date_value, DATE_FORMAT)
         instance.__dict__[self.name] = date_value
 
 
-class BirthDayField(BaseField):
+class BirthDayField(DateField):
 
     MAX_YEARS_AGO = 70
 
     def __set__(self, instance: OnlineScoreRequest, birthday: Optional[str]):
 
-        if self.required and birthday is None:
-            raise ValueError(f"Field {self.name} is required")
-
-        if not self.nullable and birthday in ("", (), [], {}):
-            raise ValueError(f"Field {self.name} is not nullable but empty value found")
+        self._check_required_and_nullable(value=birthday)
 
         if birthday is not None:
+
             current_date = datetime.datetime.today()
             birthday_as_date = datetime.datetime.strptime(birthday, DATE_FORMAT)
             date_max_years_ago = datetime.datetime.today() + relativedelta(years=-BirthDayField.MAX_YEARS_AGO)
+
             if birthday_as_date < date_max_years_ago:
                 raise ValueError("Birth date should be later than 70 years ago")
             if birthday_as_date > current_date:
@@ -187,13 +177,12 @@ class BirthDayField(BaseField):
                 )
         instance.__dict__[self.name] = birthday
 
-    def __set_name__(self, owner, name: str):
-        self.name = name
-
 
 class GenderField(BaseField):
 
     def __set__(self, instance: OnlineScoreRequest, gender_value: Optional[int]):
+
+        self._check_required_and_nullable(value=gender_value)
 
         if gender_value is not None and gender_value not in GENDERS:
             raise ValueError(f"Value should be is one of {GENDERS}")
@@ -206,16 +195,9 @@ class ClientIDsField(BaseField):
 
         super().__init__(required, nullable)
 
-    def __get__(self, instance: ClientsInterestsRequest, owner) -> List[int]:
-        return instance.__dict__[self.name]
-
     def __set__(self, instance: ClientsInterestsRequest, client_ids: Optional[List[int]]):
 
-        if self.required and client_ids is None:
-            raise ValueError(f"Field {self.name} is required")
-
-        if not self.nullable and client_ids in ("", (), [], {}):
-            raise ValueError(f"Field {self.name} is not nullable but empty value found")
+        self._check_required_and_nullable(value=client_ids)
 
         client_ids = [] if client_ids is None else client_ids
         if not isinstance(client_ids, (list, tuple)):
@@ -230,25 +212,15 @@ class ClientIDsField(BaseField):
 
         instance.__dict__[self.name] = client_ids
 
-    def __set_name__(self, owner, name: str):
-        self.name = name
-
 
 class RequestMeta(type):
-
-    FIELD_TYPES = (
-        ClientIDsField, DateField,
-        CharField, EmailField,
-        PhoneField, BirthDayField,
-        GenderField, ArgumentsField
-    )
 
     def __new__(mcs, name, bases, attrs):
 
         fields = []
         attributes = list(attrs.items())
         for attr_name, attr_value in attributes:
-            if isinstance(attr_value, RequestMeta.FIELD_TYPES):
+            if isinstance(attr_value, BaseField):
                 fields.append((attr_name, attr_value))
 
         attrs["fields"] = fields
@@ -266,7 +238,6 @@ class BaseRequest(metaclass=RequestMeta):
 
         """
         Validates form values
-        :return:
         """
 
         validation_errors = dict()
@@ -283,14 +254,13 @@ class BaseRequest(metaclass=RequestMeta):
 
         """
         Checks if request is valid
-        :return:
         """
 
         validation_errors = self._validate_form()
         if not validation_errors:
             return True, None
 
-        return False, json.dumps(validation_errors)
+        return False, validation_errors
 
 
 class ClientsInterestsRequest(BaseRequest):
@@ -328,7 +298,7 @@ class OnlineScoreRequest(BaseRequest):
                 return True, None
             return False, "No required fields found together"
 
-        return False, json.dumps(validation_errors)
+        return False, validation_errors
 
 
 class MethodRequest(BaseRequest):
@@ -360,22 +330,62 @@ def check_auth(request: MethodRequest):
     return False
 
 
-def get_request_method(method_request: MethodRequest) -> Callable:
+def handle_request_method(method_request: MethodRequest,
+                          store,
+                          context) -> Callable:
 
     """
-    Gets method from method request
-    :param method_request: method request
-    :return:
+    Handles method from method request
     """
+    ADMIN_SCORE_RESPONSE = 42
 
-    method = ClientsInterestsRequest if method_request.method == "clients_interests" else OnlineScoreRequest
+    if method_request.method == "clients_interests":
 
-    return method
+        client_interests_request = ClientsInterestsRequest(request_body=method_request.arguments)
+        request_is_valid, errors = client_interests_request.is_valid()
+        if not request_is_valid:
+            code = INVALID_REQUEST
+            return errors, code
+        response = {
+            client_id: get_interests(store=store, client_id=client_id)
+            for client_id in client_interests_request.client_ids
+        }
+        code = OK
+        context["nclients"] = len(client_interests_request.client_ids)
+        return response, code
+
+    elif method_request.method == "online_score":
+
+        online_score_request = OnlineScoreRequest(request_body=method_request.arguments)
+        request_is_valid, errors = online_score_request.is_valid()
+        if not request_is_valid:
+            code = INVALID_REQUEST
+            return errors, code
+
+        score = ADMIN_SCORE_RESPONSE if method_request.is_admin else get_score(
+            store=store,
+            email=online_score_request.email,
+            birthday=online_score_request.birthday,
+            gender=online_score_request.gender,
+            first_name=online_score_request.first_name,
+            last_name=online_score_request.last_name,
+            phone=online_score_request.phone
+        )
+        code = OK
+        response = {"score": score}
+        context["has"] = [
+            field_val[0] for field_val in online_score_request.fields
+            if online_score_request.__dict__.get(field_val[0]) is not None
+        ]
+        return response, code
+
+    else:
+        return "Unknown method", INVALID_REQUEST
 
 
 def method_handler(request: Dict[str, Union[int, str]],
-                   ctx: Dict,
-                   store: KeyValueStorage):
+                   ctx,
+                   store):
 
     method_request = MethodRequest(request_body=request["body"])
 
@@ -383,50 +393,19 @@ def method_handler(request: Dict[str, Union[int, str]],
     request_method_is_valid, request_method_errors = method_request.is_valid()
     if not request_method_is_valid:
         code = INVALID_REQUEST
-        response = {"code": code, "error": request_method_errors}
-        return response, code
+        return request_method_errors, code
 
     # Check authorization
     if not check_auth(request=method_request):
         code = FORBIDDEN
-        response = {"code": code, "error": "Forbidden"}
-        return response, code
+        return "Forbidden", code
 
     # Get method
-    method = get_request_method(method_request=method_request)
-    concrete_method = method(request_body=method_request.arguments)
-    concrete_method_is_valid, concrete_method_errors = concrete_method.is_valid()
-
-    if not concrete_method_is_valid:
-        code = INVALID_REQUEST
-        response = {"code": code, "error": concrete_method_errors}
-        return response, code
-
-    if isinstance(concrete_method, OnlineScoreRequest):
-
-        score = 42 if method_request.is_admin else get_score(
-            store=store,
-            email=concrete_method.email,
-            birthday=concrete_method.birthday,
-            gender=concrete_method.gender,
-            first_name=concrete_method.first_name,
-            last_name=concrete_method.last_name,
-            phone=concrete_method.phone
-        )
-        code = OK
-        response = {"score": score}
-        ctx["has"] = [
-            field_val[0] for field_val in concrete_method.fields
-            if concrete_method.__dict__.get(field_val[0]) is not None
-        ]
-
-    else:
-        response = {
-            client_id: get_interests(store=store, client_id=client_id)
-            for client_id in concrete_method.client_ids
-        }
-        code = OK
-        ctx["nclients"] = len(concrete_method.client_ids)
+    response, code = handle_request_method(
+        method_request=method_request,
+        context=ctx,
+        store=store
+    )
 
     return response, code
 
@@ -457,7 +436,9 @@ class MainHTTPHandler(BaseHTTPRequestHandler):
             logging.info("%s: %s %s" % (self.path, data_string, context["request_id"]))
             if path in self.router:
                 try:
-                    response, code = self.router[path]({"body": request, "headers": self.headers}, context, self.store)
+                    response, code = self.router[path](
+                        {"body": request, "headers": self.headers}, context, self.store
+                    )
                 except Exception as e:
                     logging.exception("Unexpected error: %s" % e)
                     code = INTERNAL_ERROR
