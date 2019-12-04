@@ -1,6 +1,6 @@
 import api
 import pytest
-from store import KeyValueTestStorage
+from tests.test_storage import KeyValueTestStorage
 from tests.utils import set_valid_auth
 
 
