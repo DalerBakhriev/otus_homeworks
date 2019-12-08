@@ -101,6 +101,10 @@ class ArgumentsField(BaseField):
     def __set__(self, instance: MethodRequest, arguments: Dict[str, Union[int, str]]):
 
         self._check_required_and_nullable(value=arguments)
+        if not isinstance(arguments, dict):
+            raise ValueError(
+                f"Arguments should be dict not {type(arguments)}"
+            )
         instance.__dict__[self.name] = arguments
 
 
@@ -110,8 +114,11 @@ class EmailField(CharField):
 
         self._check_required_and_nullable(value=email)
 
-        if email is not None and "@" not in email:
-            raise ValueError("Email should contain @")
+        if email is not None:
+            if not isinstance(email, str):
+                raise ValueError(f"Email must be str, not {type(email)}")
+            if "@" not in email:
+                raise ValueError("Email should contain @")
         instance.__dict__[self.name] = email
 
 
@@ -169,9 +176,9 @@ class BirthDayField(DateField):
             birthday_as_date = datetime.datetime.strptime(birthday, DATE_FORMAT)
             date_max_years_ago = datetime.datetime.today() + relativedelta(years=-BirthDayField.MAX_YEARS_AGO)
 
-            if birthday_as_date < date_max_years_ago:
+            if birthday_as_date.date() < date_max_years_ago.date():
                 raise ValueError("Birth date should be later than 70 years ago")
-            if birthday_as_date > current_date:
+            if birthday_as_date.date() > current_date.date():
                 raise ValueError(
                     f"Birth date can't be later than current date: {current_date}"
                 )
@@ -185,7 +192,7 @@ class GenderField(BaseField):
         self._check_required_and_nullable(value=gender_value)
 
         if gender_value is not None and gender_value not in GENDERS:
-            raise ValueError(f"Value should be is one of {GENDERS}")
+            raise ValueError(f"Value should be one of {GENDERS}")
         instance.__dict__[self.name] = gender_value
 
 
@@ -201,7 +208,7 @@ class ClientIDsField(BaseField):
 
         client_ids = [] if client_ids is None else client_ids
         if not isinstance(client_ids, (list, tuple)):
-            raise ValueError(f"client ids should be of type list, not {type(client_ids)}")
+            raise ValueError(f"Client ids should be of type list, not {type(client_ids)}")
 
         if not client_ids:
             raise ValueError("Client ids should be not empty")
@@ -337,7 +344,6 @@ def handle_request_method(method_request: MethodRequest,
     """
     Handles method from method request
     """
-    ADMIN_SCORE_RESPONSE = 42
 
     if method_request.method == "clients_interests":
 
@@ -362,7 +368,8 @@ def handle_request_method(method_request: MethodRequest,
             code = INVALID_REQUEST
             return errors, code
 
-        score = ADMIN_SCORE_RESPONSE if method_request.is_admin else get_score(
+        admin_score_response = 42
+        score = admin_score_response if method_request.is_admin else get_score(
             store=store,
             email=online_score_request.email,
             birthday=online_score_request.birthday,

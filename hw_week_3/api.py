@@ -337,7 +337,6 @@ def handle_request_method(method_request: MethodRequest,
     """
     Handles method from method request
     """
-    ADMIN_SCORE_RESPONSE = 42
 
     if method_request.method == "clients_interests":
 
@@ -362,7 +361,8 @@ def handle_request_method(method_request: MethodRequest,
             code = INVALID_REQUEST
             return errors, code
 
-        score = ADMIN_SCORE_RESPONSE if method_request.is_admin else get_score(
+        admin_score_response = 42
+        score = admin_score_response if method_request.is_admin else get_score(
             store=store,
             email=online_score_request.email,
             birthday=online_score_request.birthday,
@@ -411,6 +411,7 @@ def method_handler(request: Dict[str, Union[int, str]],
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
+
     router = {
         "method": method_handler
     }

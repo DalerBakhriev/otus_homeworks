@@ -1,6 +1,5 @@
-import json
 import logging
-from typing import List, NoReturn, Optional, Union
+from typing import NoReturn, Optional
 
 from redis.client import Redis
 from redis.exceptions import ConnectionError, TimeoutError
