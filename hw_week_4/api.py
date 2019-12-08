@@ -15,6 +15,7 @@ from typing import (
     Tuple,
     Union
 )
+from store import KeyValueStorage
 
 from dateutil.relativedelta import relativedelta
 
@@ -418,10 +419,16 @@ def method_handler(request: Dict[str, Union[int, str]],
 
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
+
     router = {
         "method": method_handler
     }
+
     store = None
+
+    @classmethod
+    def set_store(cls, store: KeyValueStorage):
+        cls.store = store
 
     @staticmethod
     def get_request_id(headers):
@@ -470,6 +477,10 @@ if __name__ == "__main__":
     op = OptionParser()
     op.add_option("-p", "--port", action="store", type=int, default=8080)
     op.add_option("-l", "--log", action="store", default=None)
+    op.add_option("--store-host", action="store", default="localhost")
+    op.add_option("--store-port", action="store", default=6379)
+    op.add_option("--store-max-retries", action="store", default=3)
+    op.add_option("--store-timeout", action="store", default=3)
     opts, args = op.parse_args()
     logging.basicConfig(
         filename=opts.log,
@@ -477,8 +488,15 @@ if __name__ == "__main__":
         format='[%(asctime)s] %(levelname).1s %(message)s',
         datefmt='%Y.%m.%d %H:%M:%S'
     )
+    MainHTTPHandler.set_store(KeyValueStorage(
+        host=opts.store_host,
+        port=opts.store_port,
+        retries_limit=opts.store_max_retries,
+        timeout=opts.store_timeout
+    ))
     server = HTTPServer(("localhost", opts.port), MainHTTPHandler)
     logging.info("Starting server at %s" % opts.port)
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
