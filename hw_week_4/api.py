@@ -50,6 +50,7 @@ DATE_FORMAT = "%d.%m.%Y"
 
 
 class BaseField:
+
     """
     Base class for all fields
     """
@@ -263,11 +264,13 @@ class BaseRequest(metaclass=RequestMeta):
 
 
 class ClientsInterestsRequest(BaseRequest):
+
     client_ids = ClientIDsField(required=True)
     date = DateField(required=False, nullable=True)
 
 
 class OnlineScoreRequest(BaseRequest):
+
     first_name = CharField(required=False, nullable=True)
     last_name = CharField(required=False, nullable=True)
     email = EmailField(required=False, nullable=True)
