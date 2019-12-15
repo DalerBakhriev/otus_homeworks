@@ -8,6 +8,7 @@ from store import KeyValueStorage
 TEST_RETRIES_LIMIT = 3
 TEST_TIMEOUT = 3
 
+
 @pytest.fixture()
 def working_store(request):
 
@@ -78,7 +79,8 @@ def test_get_key_from_closed_cache(not_working_store):
     test_key = "test_key_for_not_working_cache"
     not_working_store.cache_set(test_key, 404, key_expire_time_sec=60*60)
 
-    # assert not_working_store.cache_get(test_key) is None
+    assert not_working_store.cache_get(test_key) is None
+    assert not_working_store.get.calls == not_working_store.retries_limit
 
 
 def test_get_key_from_closed_storage(not_working_store):

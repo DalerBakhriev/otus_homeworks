@@ -9,7 +9,7 @@ def make_retries(method: Callable) -> Callable:
 
     """
     Decorator for making auto retries
-    fro methods of key-value storage
+    for methods of key-value storage
     """
 
     @wraps(method)
@@ -18,9 +18,8 @@ def make_retries(method: Callable) -> Callable:
         try:
             result = method(self, *method_args, **method_kwargs)
         except (ConnectionError, TimeoutError) as exception:
+            logging.error("Something went wrong. Retrying...")
             if wrapper.calls >= self.retries_limit:
-                if "cache" in method.__name__:
-                    return
                 raise exception
             wrapper.calls += 1
             self._reset_connection()
@@ -91,7 +90,6 @@ class KeyValueStorage:
 
         return result.decode("utf-8") if result is not None else result
 
-    @make_retries
     def cache_get(self, key: str) -> Optional[float]:
 
         """
@@ -100,11 +98,31 @@ class KeyValueStorage:
         :return: float value if found some in cache and None otherwise
         """
 
-        result = self._kv_storage.get(key)
+        result = None
+        try:
+            result = self.get(key)
+        except (ConnectionError, TimeoutError) as exception:
+            logging.error(
+                "Could not get value from cache. Encountered error: %s",
+                str(exception)
+            )
 
-        return float(result.decode("utf-8")) if result is not None else result
+        return float(result) if result is not None else result
 
     @make_retries
+    def _set(self, key: str,
+             value: Union[float, int],
+             key_expire_time_sec: int) -> NoReturn:
+
+        """
+        Sets the value into cache by specified key
+        :param key: key to set value for
+        :param value: value for setting
+        :param key_expire_time_sec: time in which key will be expired
+        """
+
+        self._kv_storage.set(key, str(value), ex=key_expire_time_sec)
+
     def cache_set(self, key: str,
                   value: Union[float, int],
                   key_expire_time_sec: int) -> NoReturn:
@@ -116,7 +134,13 @@ class KeyValueStorage:
         :param key_expire_time_sec: time in which key will be expired
         """
 
-        self._kv_storage.set(key, str(value), ex=key_expire_time_sec)
+        try:
+            self._set(key, str(value), key_expire_time_sec=key_expire_time_sec)
+        except (ConnectionError, TimeoutError) as exception:
+            logging.error(
+                "Could not set value to cache. Encountered error: %s",
+                str(exception)
+            )
 
     def clear(self) -> NoReturn:
         self._kv_storage.flushall()
