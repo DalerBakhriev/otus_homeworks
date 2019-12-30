@@ -122,15 +122,16 @@ class AsyncHTTPServer:
 
         return path_for_server
 
-    def _get_content_type(self, address: str) -> Optional[str]:
+    def _get_content_type(self, path: str) -> Optional[str]:
 
         """
         Gets content type using address in request
-        :param address: path to file in request
+        :param path: path to file in request
         :return: content type based on file extension
         """
 
-        _, file_extension = os.path.splitext(address)
+        _, file_extension = os.path.splitext(path)
+        logging.debug("File extension is %s", file_extension)
         return self.response_content_types.get(file_extension)
 
     def generate_response(self, request: str) -> str:
@@ -155,7 +156,7 @@ class AsyncHTTPServer:
 
         date_for_response_header = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
 
-        content_type = self._get_content_type(address)
+        content_type = self._get_content_type(path_for_server)
         if content_type is None:
             return f"HTTP/1.0 {FORBIDDEN} " \
                    f"{self.response_status_codes[FORBIDDEN]}\r\n"
@@ -291,7 +292,7 @@ if __name__ == "__main__":
     argument_parser.add_argument("-h", "--host", type=str, default="localhost")
     argument_parser.add_argument("-p", "--port", type=int, default=8080)
     argument_parser.add_argument("-w", "--workers", type=int, default=4)
-    argument_parser.add_argument("-r", "--root", type=str, default="./http-test-suite/httptest/dir2")
+    argument_parser.add_argument("-r", "--root", type=str, default="./httptest/dir2")
 
     args = argument_parser.parse_args()
     logging.debug("Root dir is %s", os.path.abspath(args.root))
