@@ -7,7 +7,7 @@ from http.client import HTTPConnection
 class HttpServer(unittest.TestCase):
 
     host = "localhost"
-    port = 80
+    port = 8080
 
     def setUp(self):
         self.conn = HTTPConnection(self.host, self.port, timeout=10)
@@ -19,14 +19,14 @@ class HttpServer(unittest.TestCase):
         """ Send bad http headers """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((self.host, self.port))
-        s.sendall("\n")
+        s.sendall(b"\n")
         s.close()
 
     def test_server_header(self):
         """Server header exists"""
         self.conn.request("GET", "/httptest/")
         r = self.conn.getresponse()
-        data = r.read()
+        data = r.read().decode("utf-8")
         server = r.getheader("Server")
         self.assertIsNotNone(server)
 
@@ -39,7 +39,7 @@ class HttpServer(unittest.TestCase):
         self.assertEqual(int(r.status), 200)
         self.assertEqual(int(length), 34)
         self.assertEqual(len(data), 34)
-        self.assertEqual(data, "<html>Directory index file</html>\n")
+        self.assertEqual(data.decode("utf-8"), "<html>Directory index file</html>\n")
 
     def test_index_not_found(self):
         """directory index file absent"""
@@ -59,14 +59,14 @@ class HttpServer(unittest.TestCase):
         """file located in nested folders"""
         self.conn.request("GET", "/httptest/dir1/dir12/dir123/deep.txt")
         r = self.conn.getresponse()
-        data = r.read()
+        data = r.read().decode("utf-8")
         length = r.getheader("Content-Length")
         self.assertEqual(int(r.status), 200)
         self.assertEqual(int(length), 20)
         self.assertEqual(len(data), 20)
         self.assertEqual(data, "bingo, you found it\n")
 
-    def test_file_with_query_string(self):
+    def test_file_with_slash_after_file_name(self):
         """slash after filename"""
         self.conn.request("GET", "/httptest/dir2/page.html/")
         r = self.conn.getresponse()
@@ -77,7 +77,7 @@ class HttpServer(unittest.TestCase):
         """query string after filename"""
         self.conn.request("GET", "/httptest/dir2/page.html?arg1=value&arg2=value")
         r = self.conn.getresponse()
-        data = r.read()
+        data = r.read().decode("utf-8")
         length = r.getheader("Content-Length")
         self.assertEqual(int(r.status), 200)
         self.assertEqual(int(length), 38)
@@ -88,7 +88,7 @@ class HttpServer(unittest.TestCase):
         """filename with spaces"""
         self.conn.request("GET", "/httptest/space%20in%20name.txt")
         r = self.conn.getresponse()
-        data = r.read()
+        data = r.read().decode("utf-8")
         length = r.getheader("Content-Length")
         self.assertEqual(int(r.status), 200)
         self.assertEqual(int(length), 19)
@@ -99,7 +99,7 @@ class HttpServer(unittest.TestCase):
         """urlencoded filename"""
         self.conn.request("GET", "/httptest/dir2/%70%61%67%65%2e%68%74%6d%6c")
         r = self.conn.getresponse()
-        data = r.read()
+        data = r.read().decode("utf-8")
         length = r.getheader("Content-Length")
         self.assertEqual(int(r.status), 200)
         self.assertEqual(int(length), 38)
@@ -115,7 +115,7 @@ class HttpServer(unittest.TestCase):
         self.assertEqual(int(r.status), 200)
         self.assertEqual(int(length), 954824)
         self.assertEqual(len(data), 954824)
-        self.assertIn("Wikimedia Foundation, Inc.", data)
+        self.assertIn("Wikimedia Foundation, Inc.", data.decode("utf-8"))
 
     def test_document_root_escaping(self):
         """document root escaping forbidden"""
@@ -131,7 +131,7 @@ class HttpServer(unittest.TestCase):
         data = r.read()
         length = r.getheader("Content-Length")
         self.assertEqual(int(r.status), 200)
-        self.assertIn("hello", data)
+        self.assertIn("hello", data.decode("utf-8"))
         self.assertEqual(int(length), 5)
 
     def test_post_method(self):
@@ -146,20 +146,21 @@ class HttpServer(unittest.TestCase):
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((self.host, self.port))
-        s.send("HEAD /httptest/dir2/page.html HTTP/1.0\r\n\r\n")
+        s.send(b"HEAD /httptest/dir2/page.html HTTP/1.0\r\n\r\n")
         data = ""
         while 1:
             buf = s.recv(1024)
-            if not buf: break
-            data += buf
+            if not buf:
+                break
+            data += buf.decode("utf-8")
         s.close()
 
         self.assertTrue(data.find("\r\n\r\n") > 0, "no empty line with CRLF found")
-        (head, body) = re.split("\r\n\r\n", data, 1)
-        headers = head.split("\r\n");
+        head, body = re.split(r"\r\n\r\n", data, 1)
+        headers = head.split("\r\n")
         self.assertTrue(len(headers) > 0, "no headers found")
         statusline = headers.pop(0)
-        (proto, code, status) = statusline.split(" ")
+        proto, code, status = statusline.split(" ")
         h = {}
         for k, v in enumerate(headers):
             name, value = re.split('\s*:\s*', v, 1)

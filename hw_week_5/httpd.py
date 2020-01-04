@@ -1,15 +1,16 @@
 """
-Entry point to my onw server program
+Entry point to my own server program
 """
 
 import argparse
-import logging
 import multiprocessing as mp
 import os
 import select
 import socket
 import time
-from typing import NoReturn, Optional, Tuple
+import urllib.parse as url_parse
+from typing import Dict, NoReturn, Optional, Tuple
+
 
 SERVER_ADDRESS = "localhost"
 SERVER_PORT = 8080
@@ -19,13 +20,11 @@ NOT_FOUND = 404
 METHOD_NOT_ALLOWED = 405
 OK = 200
 
-logging.getLogger().setLevel(logging.DEBUG)
-
-
 class AsyncHTTPServer:
 
     """
-    My own realization of http server
+    Asynchronous realization of http server
+    on sockets
     """
 
     response_status_codes = {
@@ -34,8 +33,11 @@ class AsyncHTTPServer:
         NOT_FOUND: "Not Found",
         METHOD_NOT_ALLOWED: "Method Not Allowed"
     }
+    EOL1 = b"\n\n"
+    EOL2 = b"\n\r\n"
 
     response_content_types = {
+        ".txt": "text/plain",
         ".css": "text/css",
         ".html": "text/html",
         ".js": "application/javascript",
@@ -49,10 +51,11 @@ class AsyncHTTPServer:
     address_family = socket.AF_INET
     socket_type = socket.SOCK_STREAM
     allowed_methods = ("get", "head")
-    allowed_file_extensions = (".html", ".css", ".js", ".jpg", ".jpeg", ".png", ".gif", ".swf")
-    EOL1 = b'\n\n'
-    EOL2 = b'\n\r\n'
+    HEADERS_TERMINATOR = "\r\n\r\n"
+    HEADERS_SEPARATOR = "\r\n"
     SERVER_NAME = "Daler.Bakhriev"
+    PROTOCOL = "HTTP/1.0"
+    
 
     def __init__(self,
                  server_address: str,
@@ -65,10 +68,9 @@ class AsyncHTTPServer:
         self.server_port = server_port
         self.connections_limit = connections_limit
         self.root_dir = root_dir
-        self.server_bind()
-        self.server_activate()
+        self.server_start()
 
-    def server_bind(self):
+    def server_start(self):
 
         """
         Binds server on host and port
@@ -76,16 +78,9 @@ class AsyncHTTPServer:
 
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.socket.bind((self.server_address, self.server_port))
-
-    def server_activate(self):
-
-        """
-        Activates server
-        :return:
-        """
-
-        self.socket.listen(1_000_000)
+        self.socket.listen(100)
 
     @staticmethod
     def _parse_request(request: str) -> Tuple[str, str]:
@@ -96,19 +91,22 @@ class AsyncHTTPServer:
         :return: parsed request
         """
 
-        method, address = request.split("\r\n")[0].split(" ")[:-1]
-        return method, address
+        method, raw_path = request.split("\r\n")[0].split(" ")[:-1]
+        path = url_parse.unquote(url_parse.urlparse(raw_path).path)
+
+        return method, path
 
     def _method_is_allowed(self, method: str) -> bool:
 
         """
         Checks if http method is allowed
-        :param method:
-        :return:
+        :param method: request method name
+        :return: True if method is allowed by server and False otherwise
         """
+
         return method.lower() in self.allowed_methods
 
-    def _get_path_for_server(self, address: str) -> str:
+    def _get_path_for_server(self, parsed_path: str) -> str:
 
         """
         Checks if path from address exists
@@ -116,8 +114,8 @@ class AsyncHTTPServer:
         :return: path for server is string format
         """
 
-        path_for_server = f"{self.root_dir}{address}"
-        if not address.split("/")[-1]:
+        path_for_server = f"{self.root_dir}{parsed_path}"
+        if not parsed_path.split("/")[-1]:
             path_for_server = f"{path_for_server}index.html"
 
         return path_for_server
@@ -131,108 +129,123 @@ class AsyncHTTPServer:
         """
 
         _, file_extension = os.path.splitext(path)
-        logging.debug("File extension is %s", file_extension)
+
         return self.response_content_types.get(file_extension)
 
-    def generate_response(self, request: str) -> str:
+    def _get_response_body(self, path: str) -> bytes:
+
+        """
+        Gets response body from file path
+        :param path: path to file in request
+        :return: file content in bytes format
+        """
+
+        with open(path, "rb") as requested_file:
+            response_body = requested_file.read()
+        
+        return response_body
+    
+    def _generate_response(self,
+                           response_headers: Dict[str, str],
+                           status_code: int,
+                           response_body: bytes = b"") -> bytes:
+
+        """
+        Generates response as bytes format
+        :param response_headers: headers for response in dict format
+        :param status_code: status code of response to generate
+        :param response_body: body of response in bytes format
+        """
+        
+        response_code_line = f"{self.PROTOCOL} {status_code} " \
+                             f"{self.response_status_codes[status_code]}{self.HEADERS_SEPARATOR}"
+        headers_line = f"{self.HEADERS_SEPARATOR}".join(
+            f"{name}: {value}" for name, value in response_headers.items()
+        )
+        response = f"{response_code_line}{headers_line}{self.HEADERS_TERMINATOR}".encode("utf-8") + response_body
+
+        return response
+    
+    def handle_request(self, request: str) -> bytes:
 
         """
         Generates response based on request
         :param request: method in text representation
-        :return:
+        :return: response in string format
         """
 
         method, address = self._parse_request(request)
+        date_for_response_header = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+
+        response_headers = {
+            "Date": date_for_response_header,
+            "Server": self.SERVER_NAME,
+            "Connection": "closed"
+        }
 
         if not self._method_is_allowed(method):
-            return f"HTTP/1.0 {METHOD_NOT_ALLOWED} " \
-                   f"{self.response_status_codes[METHOD_NOT_ALLOWED]}\r\n"
+            return self._generate_response(
+                response_headers=response_headers,
+                status_code=METHOD_NOT_ALLOWED
+            )
 
         path_for_server = self._get_path_for_server(address)
-        logging.debug("Path for server is %s", path_for_server)
         if not os.path.exists(path_for_server):
-            return f"HTTP/1.0 {NOT_FOUND} " \
-                   f"{self.response_status_codes[NOT_FOUND]}\r\n"
-
-        date_for_response_header = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+            return self._generate_response(
+                response_headers=response_headers,
+                status_code=NOT_FOUND
+            )
 
         content_type = self._get_content_type(path_for_server)
         if content_type is None:
-            return f"HTTP/1.0 {FORBIDDEN} " \
-                   f"{self.response_status_codes[FORBIDDEN]}\r\n"
-
-        with open(path_for_server, "rb") as requested_file:
-            response_body = requested_file.read()
-        content_length = len(response_body)
-        response = f"HTTP/1.0 {OK} " \
-                   f"{self.response_status_codes[OK]}\r\n" \
-                   f"Date: {date_for_response_header}\r\n" \
-                   f"Server: {self.SERVER_NAME}\r\n" \
-                   f"Content-Type: {content_type}\r\n" \
-                   f"Content-Length: {content_length}\r\n\r\n" \
-                   f"{response_body}"
-
-        return response
-
-    def handle_client_connection(self, client_socket: socket.socket):
-
-        """
-        Handles client socket connection
-        :param client_socket: socket got from client
-        :return:
-        """
-
-        request = client_socket.recv(1024)
-        logging.info('Received %s', request)
-        response = self.generate_response(request)
-        client_socket.send(response)
-        client_socket.close()
+            return self._generate_response(
+                response_headers=response_headers,
+                status_code=FORBIDDEN
+            )
+        
+        response_body = self._get_response_body(path_for_server) if method.lower() == "get" else b""
+        content_length = os.path.getsize(path_for_server)
+        response_headers["Content-Type"] = content_type
+        response_headers["Content-Length"] = content_length
+        
+        return self._generate_response(
+            response_headers=response_headers,
+            status_code=OK,
+            response_body=response_body
+        )
 
     def serve_forever(self):
 
         """
-        Starts server to serve
-        :return:
+        Starts server
         """
-
-        response = b'HTTP/1.0 200 OK\r\nDate: Mon, 1 Jan 1996 01:01:01 GMT\r\n'
-        response += b'Content-Type: text/plain\r\nContent-Length: 13\r\n\r\n'
-        response += b'Hello, world!'
 
         epoll = select.epoll()
         epoll.register(self.socket.fileno(), select.EPOLLIN)
         try:
             connections, requests, responses = dict(), dict(), dict()
             while True:
-                events = epoll.poll(10000)
+                events = epoll.poll(1)
                 for fileno, event in events:
                     if fileno == self.socket.fileno():
-                        connection, address = self.socket.accept()
+                        connection, _ = self.socket.accept()
                         connection.setblocking(0)
                         epoll.register(connection.fileno(), select.EPOLLIN)
                         connections[connection.fileno()] = connection
-                        requests[connection.fileno()] = b''
-                        responses[connection.fileno()] = b''
+                        requests[connection.fileno()] = b""
+                        responses[connection.fileno()] = b""
                     elif event & select.EPOLLIN:
-                        logging.info("Reading event for %s, process is %s", fileno, os.getpid())
-                        requests[fileno] += connections[fileno].recv(1024)
+                        incoming_request_data = connections[fileno].recv(1024)
+                        if not incoming_request_data:
+                            epoll.modify(fileno, select.EPOLLET)
+                            connections[fileno].shutdown(socket.SHUT_RDWR)
+                            continue
+                        requests[fileno] += incoming_request_data
                         if self.EOL1 in requests[fileno] or self.EOL2 in requests[fileno]:
                             epoll.modify(fileno, select.EPOLLOUT)
-                            connections[fileno].setsockopt(socket.IPPROTO_TCP, socket.TCP_CORK, 1)
-                            logging.info(
-                                "%s",
-                                self._parse_request(requests[fileno].decode()[:-2])
-                            )
                     elif event & select.EPOLLOUT:
-                        logging.info(
-                            "Writing event for %s. Writing answer: %s, process is %s",
-                            fileno,
-                            responses[fileno],
-                            os.getpid()
-                        )
-                        response = self.generate_response(request=requests[fileno].decode()[:-2])
-                        logging.info("Response is %s", response)
-                        responses[fileno] = response.encode(encoding="utf-8")
+                        response = self.handle_request(request=requests[fileno].decode()[:-2])
+                        responses[fileno] = response
                         bytes_written = connections[fileno].send(responses[fileno])
                         responses[fileno] = responses[fileno][bytes_written:]
                         if not responses[fileno]:
@@ -273,7 +286,7 @@ def run_server(host: str,
     worker_processes = list()
 
     try:
-        for worker_num in range(num_workers):
+        for _ in range(num_workers):
             worker_process = mp.Process(target=server.serve_forever)
             worker_process.start()
             worker_processes.append(worker_process)
@@ -282,8 +295,8 @@ def run_server(host: str,
             worker_process.join()
     except KeyboardInterrupt:
         for worker_process in worker_processes:
-            logging.debug("Terminating process: %s", worker_process.pid)
             worker_process.terminate()
+
 
 
 if __name__ == "__main__":
@@ -292,10 +305,9 @@ if __name__ == "__main__":
     argument_parser.add_argument("-h", "--host", type=str, default="localhost")
     argument_parser.add_argument("-p", "--port", type=int, default=8080)
     argument_parser.add_argument("-w", "--workers", type=int, default=4)
-    argument_parser.add_argument("-r", "--root", type=str, default="./httptest/dir2")
+    argument_parser.add_argument("-r", "--root", type=str, default=".")
 
     args = argument_parser.parse_args()
-    logging.debug("Root dir is %s", os.path.abspath(args.root))
 
     run_server(
         host=args.host,
