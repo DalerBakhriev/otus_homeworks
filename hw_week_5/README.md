@@ -20,32 +20,33 @@ Server Port:            8080
 Document Path:          /
 Document Length:        0 bytes
 
-Concurrency Level:      200
-Time taken for tests:   3.895 seconds
+Concurrency Level:      100
+Time taken for tests:   3.969 seconds
 Complete requests:      50000
 Failed requests:        0
 Non-2xx responses:      50000
 Total transferred:      5350000 bytes
 HTML transferred:       0 bytes
-Requests per second:    12835.40 [#/sec] (mean)
-Time per request:       15.582 [ms] (mean)
-Time per request:       0.078 [ms] (mean, across all concurrent requests)
-Transfer rate:          1341.20 [Kbytes/sec] received
+Requests per second:    12598.74 [#/sec] (mean)
+Time per request:       7.937 [ms] (mean)
+Time per request:       0.079 [ms] (mean, across all concurrent requests)
+Transfer rate:          1316.47 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:        0    5  67.5      0    3025
-Processing:     3   10   7.1     10     424
-Waiting:        3   10   7.1     10     424
-Total:          3   14  70.0     10    3039
+Connect:        0    0   0.4      0      12
+Processing:     3    8   3.1      7      45
+Waiting:        3    8   3.1      7      45
+Total:          4    8   3.1      7      45
 
 Percentage of the requests served within a certain time (ms)
-  50%     10
-  66%     11
-  75%     12
-  80%     12
-  90%     13
-  95%     14
-  98%     16
-  99%     25
- 100%   3039 (longest request)
+  50%      7
+  66%      9
+  75%     10
+  80%     10
+  90%     11
+  95%     12
+  98%     13
+  99%     15
+ 100%     45 (longest request)
+
