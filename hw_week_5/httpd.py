@@ -3,6 +3,7 @@ Entry point to my own server program
 """
 
 import argparse
+import logging
 import multiprocessing as mp
 import os
 import select
@@ -11,10 +12,8 @@ import time
 import urllib.parse as url_parse
 from typing import Dict, NoReturn, Optional, Tuple
 
-
 SERVER_ADDRESS = "localhost"
 SERVER_PORT = 8080
-CONNECTIONS_LIMIT = 100000
 FORBIDDEN = 403
 NOT_FOUND = 404
 METHOD_NOT_ALLOWED = 405
@@ -80,7 +79,7 @@ class AsyncHTTPServer:
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.socket.bind((self.server_address, self.server_port))
-        self.socket.listen(100)
+        self.socket.listen(self.connections_limit)
 
     @staticmethod
     def _parse_request(request: str) -> Tuple[str, str]:
@@ -117,6 +116,7 @@ class AsyncHTTPServer:
         path_for_server = f"{self.root_dir}{parsed_path}"
         if not parsed_path.split("/")[-1]:
             path_for_server = f"{path_for_server}index.html"
+        logging.debug("Path for server is %s", path_for_server)
 
         return path_for_server
 
@@ -236,6 +236,12 @@ class AsyncHTTPServer:
                         responses[connection.fileno()] = b""
                     elif event & select.EPOLLIN:
                         incoming_request_data = connections[fileno].recv(1024)
+                        logging.debug(
+                            "Request is:\n %s\n Connection is %s\n Process is %s",
+                            incoming_request_data,
+                            fileno,
+                            os.getpid()
+                        )
                         if not incoming_request_data:
                             epoll.modify(fileno, select.EPOLLET)
                             connections[fileno].shutdown(socket.SHUT_RDWR)
@@ -245,6 +251,12 @@ class AsyncHTTPServer:
                             epoll.modify(fileno, select.EPOLLOUT)
                     elif event & select.EPOLLOUT:
                         response = self.handle_request(request=requests[fileno].decode()[:-2])
+                        logging.debug(
+                            "Response is:\n %s\n Connection is %s\n Process is %s",
+                            response,
+                            fileno,
+                            os.getpid()
+                        )
                         responses[fileno] = response
                         bytes_written = connections[fileno].send(responses[fileno])
                         responses[fileno] = responses[fileno][bytes_written:]
@@ -306,14 +318,19 @@ if __name__ == "__main__":
     argument_parser.add_argument("-p", "--port", type=int, default=8080)
     argument_parser.add_argument("-w", "--workers", type=int, default=4)
     argument_parser.add_argument("-r", "--root", type=str, default=".")
+    argument_parser.add_argument("-l", "--connections-limit", type=int, default=100)
+    argument_parser.add_argument("-d", "--debug", action="store_true")
 
     args = argument_parser.parse_args()
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
+    logging.debug("File root is %s", os.path.abspath(args.root))
 
     run_server(
         host=args.host,
         port=args.port,
         root_dir=args.root,
-        connections_limit=CONNECTIONS_LIMIT,
+        connections_limit=args.connections_limit,
         num_workers=args.workers
     )
-
