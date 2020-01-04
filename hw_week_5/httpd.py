@@ -243,8 +243,7 @@ class AsyncHTTPServer:
                             os.getpid()
                         )
                         if not incoming_request_data:
-                            epoll.modify(fileno, select.EPOLLET)
-                            connections[fileno].shutdown(socket.SHUT_RDWR)
+                            epoll.modify(fileno, select.EPOLLHUP)
                             continue
                         requests[fileno] += incoming_request_data
                         if self.EOL1 in requests[fileno] or self.EOL2 in requests[fileno]:
@@ -262,7 +261,10 @@ class AsyncHTTPServer:
                         responses[fileno] = responses[fileno][bytes_written:]
                         if not responses[fileno]:
                             epoll.modify(fileno, 0)
-                            connections[fileno].shutdown(socket.SHUT_RDWR)
+                            try:
+                                connections[fileno].shutdown(socket.SHUT_RDWR)
+                            except OSError:
+                                pass
                     elif event & select.EPOLLHUP:
                         epoll.unregister(fileno)
                         connections[fileno].close()
@@ -318,7 +320,7 @@ if __name__ == "__main__":
     argument_parser.add_argument("-p", "--port", type=int, default=8080)
     argument_parser.add_argument("-w", "--workers", type=int, default=4)
     argument_parser.add_argument("-r", "--root", type=str, default=".")
-    argument_parser.add_argument("-l", "--connections-limit", type=int, default=100)
+    argument_parser.add_argument("-l", "--connections-limit", type=int, default=1000)
     argument_parser.add_argument("-d", "--debug", action="store_true")
 
     args = argument_parser.parse_args()
