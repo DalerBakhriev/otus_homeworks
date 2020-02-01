@@ -108,7 +108,7 @@ class LogisticRegression:
         # Implement this method. Store the probabilities of classes in y_proba.   #
         # Hint: It might be helpful to use np.vstack and np.sum                   #
         ###########################################################################
-        y_one = self._prediction_one(X)
+        y_one = self._predict_probability_for_class_one(X)
         y_zero = 1.0 - y_one
         y_proba = np.hstack((y_zero[:, np.newaxis], y_one[:, np.newaxis]))
 
@@ -143,7 +143,7 @@ class LogisticRegression:
         ###########################################################################
         return y_pred
 
-    def _prediction_one(self, X: np.ndarray) -> np.ndarray:
+    def _predict_probability_for_class_one(self, X: np.ndarray) -> np.ndarray:
 
         """
         Makes prediction for class one in case of binary classification
@@ -151,8 +151,8 @@ class LogisticRegression:
         :return: numpy array with predictions for class one
         """
 
-        prediction_zero = 1.0 / (1.0 + np.exp(-X.dot(self.w)))
-        return prediction_zero
+        prediction_probability_for_class_one = 1.0 / (1.0 + np.exp(-X.dot(self.w)))
+        return prediction_probability_for_class_one
 
     def loss(self,
              X_batch: np.ndarray,
@@ -176,7 +176,7 @@ class LogisticRegression:
         # to be an average instead so we divide by num_train.
         # Note that the same thing must be done with gradient.
 
-        prediction_one = self._prediction_one(X_batch)
+        prediction_one = self._predict_probability_for_class_one(X_batch)
         loss = (-y_batch.dot(np.log(prediction_one)) - (1 - y_batch).dot(np.log(1 - prediction_one))) / X_batch.shape[0]
         dw = (prediction_one - y_batch) * X_batch / X_batch.shape[0]
 
