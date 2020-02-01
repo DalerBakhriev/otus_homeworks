@@ -144,6 +144,13 @@ class LogisticRegression:
         return y_pred
 
     def _prediction_one(self, X: np.ndarray) -> np.ndarray:
+
+        """
+        Makes prediction for class one in case of binary classification
+        :param X: feature matrix
+        :return: numpy array with predictions for class one
+        """
+
         prediction_zero = 1.0 / (1.0 + np.exp(-X.dot(self.w)))
         return prediction_zero
 
