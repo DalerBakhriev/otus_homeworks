@@ -7,7 +7,7 @@ verify_ssl = true
 mypy = "*"
 
 [packages]
-django = "3.0.2"
+django = "3.0.3"
 pyjwt = "*"
 pillow = "*"
 
