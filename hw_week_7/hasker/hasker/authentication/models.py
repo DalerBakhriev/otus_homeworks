@@ -13,7 +13,7 @@ from django.db import models
 class User(AbstractUser):
 
     avatar = models.ImageField(
-        upload_to="pictures/",
+        upload_to="imgs/",
         null=True,
         blank=True
     )
