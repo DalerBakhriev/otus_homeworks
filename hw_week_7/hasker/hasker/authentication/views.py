@@ -59,13 +59,13 @@ def login_user(request: HttpRequest) -> HttpResponse:
 
 def change_user_settings(request: HttpRequest) -> HttpResponse:
 
+    # TODO: Make normal user parameters update with form validation
     if request.method == "POST":
-        updated_user = User(
-            username=request.POST["login"],
+        User.objects.filter(username=request.user.username).update(
+            username=request.POST["username"],
             email=request.POST["email"],
             avatar=request.POST["avatar"]
         )
-        updated_user.save()
         return redirect(to=reverse("login"))
 
     user_name = request.user.username
