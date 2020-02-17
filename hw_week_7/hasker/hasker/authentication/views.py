@@ -26,12 +26,11 @@ def authenticate_user(request: HttpRequest,
 def signup_user(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
-        user_model = User(
-            username=request.POST["login"],
-            email=request.POST["email"],
-            password=request.POST["password"],
-            avatar=request.POST["avatar"]
-        )
+        form = UserSignupForm(data=request.POST)
+        if not form.is_valid():
+            return HttpResponse("Form validation failed. try again.")
+        user_model = form.save(commit=False)
+        user_model.set_password(user_model.password)
         user_model.save()
         return redirect(reverse("login"))
 

@@ -19,6 +19,7 @@ NOT_FOUND = 404
 METHOD_NOT_ALLOWED = 405
 OK = 200
 
+
 class AsyncHTTPServer:
 
     """
@@ -54,7 +55,6 @@ class AsyncHTTPServer:
     HEADERS_SEPARATOR = "\r\n"
     SERVER_NAME = "Daler.Bakhriev"
     PROTOCOL = "HTTP/1.0"
-    
 
     def __init__(self,
                  server_address: str,
@@ -310,7 +310,6 @@ def run_server(host: str,
     except KeyboardInterrupt:
         for worker_process in worker_processes:
             worker_process.terminate()
-
 
 
 if __name__ == "__main__":
