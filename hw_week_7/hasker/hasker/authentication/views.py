@@ -28,7 +28,7 @@ def signup_user(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = UserSignupForm(data=request.POST)
         if not form.is_valid():
-            return HttpResponse("Form validation failed. try again.")
+            return HttpResponse(f"{form.errors}")
         user_model = form.save(commit=False)
         user_model.set_password(user_model.password)
         user_model.save()

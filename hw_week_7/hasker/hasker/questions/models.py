@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 from ..authentication.models import User
 
 
@@ -14,7 +15,7 @@ class Question(models.Model):
 
     title = models.CharField(max_length=300)
     text = models.TextField()
-    rating = models.IntegerField()
+    rating = models.IntegerField(default=0)
     tags = models.ManyToManyField(
         to=Tag,
         blank=True
@@ -23,7 +24,14 @@ class Question(models.Model):
         to=User,
         on_delete=models.CASCADE
     )
-    creation_date = models.DateField()
+    creation_date = models.DateTimeField(auto_now_add=True, editable=True)
+
+    def get_absolute_url(self):
+        return reverse("question", kwargs={'question_id': self.pk})
+
+    @property
+    def url(self):
+        return self.get_absolute_url()
 
 
 class Answer(models.Model):
@@ -34,5 +42,5 @@ class Answer(models.Model):
         on_delete=models.CASCADE
     )
     creation_date = models.DateField()
-    is_correct = models.BooleanField()
+    is_correct = models.BooleanField(default=False)
 

@@ -2,6 +2,18 @@ from django import forms
 from .models import Question, Tag
 
 
+class QuestionForm(forms.ModelForm):
+
+    class Meta:
+        model = Question
+        fields = (
+            "title",
+            "text",
+            "rating",
+            "tags"
+        )
+
+
 class AskQuestionForm(forms.ModelForm):
 
     tags = forms.ModelMultipleChoiceField(
@@ -13,5 +25,5 @@ class AskQuestionForm(forms.ModelForm):
 
     class Meta:
         model = Question
-        fields = ("title", "text", "tags")
+        fields = ("title", "text", "tags", "author")
 
