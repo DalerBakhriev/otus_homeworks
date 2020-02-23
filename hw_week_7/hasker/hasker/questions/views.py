@@ -1,6 +1,6 @@
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, redirect
-from .models import Question
+from .models import Question, User
 
 from .forms import AskQuestionForm, QuestionForm
 
@@ -11,7 +11,10 @@ def ask_question(request: HttpRequest) -> HttpResponse:
         form = AskQuestionForm(request.POST)
         if not form.is_valid():
             return HttpResponse(f"{form.errors}")
-        question_model = form.save(commit=True)
+        question_model = form.save(commit=False)
+        author = request.user
+        question_model.author = author
+        question_model.save()
         return redirect(question_model.url)
 
     form = AskQuestionForm()
@@ -23,13 +26,20 @@ def show_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
     if question_id is None:
         return HttpResponse("Could not find question id")
-    question = Question.objects.get(pk=question_id)
+    question = Question.objects.get(id=question_id)
     question_form = QuestionForm(instance=question)
 
     return render(request,
                   template_name="questions/ask_question.html",
                   context={"form": question_form})
 
+
+def show_all_questions(request: HttpRequest) -> HttpResponse:
+
+    all_questions = Question.objects.order_by("rating", "creation_date").all()
+    all_questions_for_response = "\n".join(str(question) for question in all_questions)
+
+    return HttpResponse(all_questions_for_response)
 
 
 

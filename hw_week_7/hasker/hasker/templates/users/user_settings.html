@@ -8,7 +8,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<form action="/accounts/user_settings/" method="post">
+<form action="/users/user_settings/" method="post">
     {% csrf_token %}
     {{ form.as_p }}
     <input type="submit" value="Submit">

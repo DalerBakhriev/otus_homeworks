@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     'hasker.questions.apps.QuestionsConfig',
-    'hasker.authentication.apps.AuthenticationConfig'
+    'hasker.users.apps.UsersConfig'
 ]
 
 MIDDLEWARE = [
@@ -78,8 +78,12 @@ WSGI_APPLICATION = 'hasker.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': "hasker_db",
+        'USER' : 'hasker_admin',
+        'PASSWORD' : 'Daler1995',
+        'HOST' : '127.0.0.1',
+        'PORT' : '5432'
     }
 }
 
@@ -122,4 +126,4 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-AUTH_USER_MODEL = "authentication.User"
+AUTH_USER_MODEL = "users.User"

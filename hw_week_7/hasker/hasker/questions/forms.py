@@ -4,13 +4,16 @@ from .models import Question, Tag
 
 class QuestionForm(forms.ModelForm):
 
+    answer = forms.CharField(widget=forms.Textarea)
+
     class Meta:
         model = Question
         fields = (
             "title",
             "text",
             "rating",
-            "tags"
+            "tags",
+            "answer"
         )
 
 
@@ -25,5 +28,5 @@ class AskQuestionForm(forms.ModelForm):
 
     class Meta:
         model = Question
-        fields = ("title", "text", "tags", "author")
+        fields = ("title", "text", "tags")
 

@@ -17,7 +17,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path("questions/", include("hasker.questions.urls")),
-    path("accounts/", include("hasker.authentication.urls")),
+    path("", include("hasker.questions.urls")),
+    path("users/", include("hasker.users.urls")),
     path("admin/", admin.site.urls),
 ]

@@ -37,7 +37,7 @@ def signup_user(request: HttpRequest) -> HttpResponse:
     form = UserSignupForm()
 
     return render(request=request,
-                  template_name="authentication/user_signup.html",
+                  template_name="users/user_signup.html",
                   context={"form": form})
 
 
@@ -53,7 +53,7 @@ def login_user(request: HttpRequest) -> HttpResponse:
     form = UserLoginForm()
 
     return render(request=request,
-                  template_name="authentication/login.html",
+                  template_name="users/login.html",
                   context={"form": form})
 
 
@@ -73,7 +73,7 @@ def change_user_settings(request: HttpRequest) -> HttpResponse:
     form = UserSettingsForm(instance=user_model)
 
     return render(request=request,
-                  template_name="authentication/user_settings.html",
+                  template_name="users/user_settings.html",
                   context={"form": form})
 
 

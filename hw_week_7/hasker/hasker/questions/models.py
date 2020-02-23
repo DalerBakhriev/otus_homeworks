@@ -1,6 +1,7 @@
+from django.utils import timezone
 from django.db import models
 from django.urls import reverse
-from ..authentication.models import User
+from ..users.models import User
 
 
 class Tag(models.Model):
@@ -24,7 +25,7 @@ class Question(models.Model):
         to=User,
         on_delete=models.CASCADE
     )
-    creation_date = models.DateTimeField(auto_now_add=True, editable=True)
+    creation_date = models.DateTimeField(default=timezone.now)
 
     def get_absolute_url(self):
         return reverse("question", kwargs={'question_id': self.pk})
@@ -39,6 +40,11 @@ class Answer(models.Model):
     text = models.TextField()
     author = models.ForeignKey(
         to=User,
+        on_delete=models.CASCADE
+    )
+    question = models.ForeignKey(
+        to=Question,
+        related_name="answers",
         on_delete=models.CASCADE
     )
     creation_date = models.DateField()

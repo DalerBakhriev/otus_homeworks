@@ -10,6 +10,7 @@ mypy = "*"
 django = "==3.0.3"
 pyjwt = "*"
 pillow = "*"
+psycopg2-binary = "*"
 
 [requires]
 python_version = "3.8"
