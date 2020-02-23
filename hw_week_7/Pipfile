@@ -11,6 +11,7 @@ django = "==3.0.3"
 pyjwt = "*"
 pillow = "*"
 psycopg2-binary = "*"
+pylint = "*"
 
 [requires]
 python_version = "3.8"
