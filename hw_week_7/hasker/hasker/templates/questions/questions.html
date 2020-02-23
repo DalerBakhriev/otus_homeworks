@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Questions</title>
+</head>
+<body>
+<div>
+    <legend>Hot questions</legend>
+</div>
+{% for question in questions %}
+    <option>{{ question.title }}</option>
+    <option>{{ question.text }}</option>
+    <option>{{ question.rating }}</option>
+    <option>{{ question.tags }}</option>
+    <option>{{ question.author }}</option>
+    <option>{{ question.creation_date }}</option>
+{% endfor %}
+</body>
+</html>

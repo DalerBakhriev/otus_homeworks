@@ -1,6 +1,7 @@
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render, redirect
-from .models import Question, User
+from .models import Question
+from django.conf import settings
 
 from .forms import AskQuestionForm, QuestionForm
 
@@ -37,9 +38,11 @@ def show_question(request: HttpRequest, question_id: int) -> HttpResponse:
 def show_all_questions(request: HttpRequest) -> HttpResponse:
 
     all_questions = Question.objects.order_by("rating", "creation_date").all()
-    all_questions_for_response = "\n".join(str(question) for question in all_questions)
+    all_questions_for_template = list(all_questions)
 
-    return HttpResponse(all_questions_for_response)
+    return render(request,
+                  template_name="questions/questions.html",
+                  context={"questions": all_questions_for_template})
 
 
 

@@ -11,10 +11,15 @@ class QuestionForm(forms.ModelForm):
         fields = (
             "title",
             "text",
+            "author",
             "rating",
             "tags",
             "answer"
         )
+        widgets = {"rating": forms.NumberInput}
+        labels = {
+            'author': "Asked by"
+        }
 
 
 class AskQuestionForm(forms.ModelForm):
