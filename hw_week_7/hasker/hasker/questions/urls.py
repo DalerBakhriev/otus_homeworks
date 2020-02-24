@@ -1,9 +1,10 @@
 from django.urls import path
-from .views import ask_question, show_question, show_all_questions
+from . import views
 
-
+app_name = "questions"
 urlpatterns = [
-    path("", show_all_questions, name="all_questions"),
-    path("ask_question/", ask_question, name="ask_question"),
-    path("question/<int:question_id>", show_question, name="question")
+    path("", views.index, name="questions"),
+    path("ask_question/", views.ask_question, name="ask_question"),
+    path("question/<int:question_id>", views.question_detail, name="question"),
+    path("question/<int:question_id>/add_answer", views.add_answer, name="add_answer")
 ]

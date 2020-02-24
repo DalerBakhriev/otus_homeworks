@@ -5,6 +5,7 @@ from django.contrib.auth.views import (
     PasswordChangeView
 )
 
+app_name = "users"
 urlpatterns = [
     path("signup/", signup_user, name="signup"),
     path("login/", login_user, name="login"),

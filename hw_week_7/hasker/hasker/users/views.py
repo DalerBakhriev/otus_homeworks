@@ -18,7 +18,7 @@ def authenticate_user(request: HttpRequest,
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        return redirect(reverse("ask_question"))
+        return redirect(reverse("questions:ask_question"))
 
     return HttpResponse("Not authorized", status=401)
 
@@ -32,7 +32,7 @@ def signup_user(request: HttpRequest) -> HttpResponse:
         user_model = form.save(commit=False)
         user_model.set_password(user_model.password)
         user_model.save()
-        return redirect(reverse("login"))
+        return redirect(reverse("users:login"))
 
     form = UserSignupForm()
 

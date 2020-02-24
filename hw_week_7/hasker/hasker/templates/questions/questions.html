@@ -1,20 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Questions</title>
-</head>
-<body>
-<div>
-    <legend>Hot questions</legend>
-</div>
-{% for question in questions %}
-    <option>{{ question.title }}</option>
-    <option>{{ question.text }}</option>
-    <option>{{ question.rating }}</option>
-    <option>{{ question.tags }}</option>
-    <option>{{ question.author }}</option>
-    <option>{{ question.creation_date }}</option>
-{% endfor %}
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %} Top questions {% endblock %}
+{% block content %}
+    {% if questions %}
+        {% for question in questions %}
+            <a href="{% url 'questions:question' question.id %}" size="500">{{ question.title }}</a><br>
+        {% endfor %}
+    {% else %}
+        There are no questions yet
+    {% endif %}
+{% endblock %}
