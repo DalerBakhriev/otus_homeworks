@@ -3,7 +3,10 @@
 {% block content %}
     {% if questions %}
         {% for question in questions %}
-            <a href="{% url 'questions:question' question.id %}" size="500">{{ question.title }}</a><br>
+            <a href="{% url 'questions:question' question.id %}">{{ question.title }}</a><br>
+            <p>Asked by: {{ question.author }}</p>
+            <p>Rating: {{ question.rating }}</p>
+            <em>{{ question.creation_date }}</em><br><br>
         {% endfor %}
     {% else %}
         There are no questions yet
