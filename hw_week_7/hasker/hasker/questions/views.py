@@ -9,9 +9,10 @@ from django.http import (
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
+from django.core.mail import send_mail
 
 from .forms import AskQuestionForm
-from .models import Question, Tag
+from .models import Question, Tag, User
 from .. import settings
 
 
@@ -111,6 +112,18 @@ def question_detail(request: HttpRequest, question_id: int) -> HttpResponse:
                            "answers": answers})
 
 
+def notify_question_author(user: User, question: Question) -> None:
+
+    send_mail(
+        subject="Hasker: new answer.",
+        message=f"Received new answer from user {user.username}\n"
+                f"Here is link for question: {question.url}",
+        from_email=settings.SERVICE_EMAIL,
+        recipient_list=[question.author.email],
+        fail_silently=True
+    )
+
+
 def add_answer(request: HttpRequest, question_id: int) -> HttpResponse:
 
     question: Question = get_question(question_id)
@@ -118,6 +131,11 @@ def add_answer(request: HttpRequest, question_id: int) -> HttpResponse:
         text=request.POST["text"],
         author=request.user,
         creation_date=timezone.now()
+    )
+
+    notify_question_author(
+        user=request.user,
+        question=question
     )
 
     return HttpResponseRedirect(reverse("questions:question", args=(question.id,)))
