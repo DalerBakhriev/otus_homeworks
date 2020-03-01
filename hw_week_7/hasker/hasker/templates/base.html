@@ -1,8 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>{% block title %} {% endblock %}</title>
+    {% block css %}
+        <link rel="stylesheet" href="{% static "css/hasker.css" %}">
+    {% endblock %}
     <style>
         ul.hr {
             margin: 0; /* Обнуляем значение отступов */
@@ -10,7 +14,7 @@
         }
         ul.hr li, h1, form {
             display: inline; /* Отображать как строчный элемент */
-            margin-right: 5px; /* Отступ слева */
+            margin-right: 90px; /* Отступ слева */
             padding: 50px; /* Поля вокруг текста */
         }
 
@@ -31,11 +35,16 @@
     </li>
     <li>{% if user.is_authenticated %}
         <a href="{% url 'users:user_settings' %}">{{ user.username }}</a>
+        <img src="{{ user.avatar.url}}" width="35" height="35">
+        <a href="{% url 'users:logout' %}">Log out</a>
+        <a href="{% url "questions:ask_question" %}">Ask question</a>
     {% else %}
         <a href="{% url 'users:login' %}">Log in</a>
+        <a href="{% url 'users:signup' %}">Sign up</a>
     {% endif %}</li>
 </ul>
 <hr size="5">
 {% block content %} {% endblock %}
+
 </body>
 </html>

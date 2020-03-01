@@ -9,10 +9,14 @@ from django.db import models
 class User(AbstractUser):
 
     avatar = models.ImageField(
+        default="imgs/default_avatar.img",
         upload_to="imgs/",
         null=True,
         blank=True
     )
+
+    def __str__(self) -> str:
+        return self.username
 
     @property
     def token(self):

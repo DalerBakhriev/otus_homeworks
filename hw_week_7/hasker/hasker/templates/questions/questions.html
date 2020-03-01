@@ -1,10 +1,24 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %} Top questions {% endblock %}
 {% block content %}
     {% if questions %}
         {% for question in questions %}
             <a href="{% url 'questions:question' question.id %}">{{ question.title }}</a><br>
-            <p>Asked by: {{ question.author }}</p>
+            <p>
+                Asked by: <img src="{{ question.author.avatar.url}}" width="35" height="35">
+                {{ question.author.username }}
+            </p>
+            {% if user.is_authenticated %}
+                <form action="{% url 'questions:like_question' question.id %}" method="GET">
+                    {% csrf_token %}
+                    <button type="submit">Like</button>
+                </form>
+                <form action="{% url 'questions:dislike_question' question.id %}" method="GET">
+                    {% csrf_token %}
+                    <button type="submit">Dislike</button>
+                </form>
+            {% endif %}
             <p>Rating: {{ question.rating }}</p>
             <em>{{ question.creation_date }}</em><br><br>
         {% endfor %}

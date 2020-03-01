@@ -8,5 +8,7 @@ urlpatterns = [
     path("ask_question/", views.ask_question, name="ask_question"),
     path("tag/<int:tag_id>", views.search_question_by_tag, name="search_question_by_tag"),
     path("question/<int:question_id>", views.question_detail, name="question"),
-    path("question/<int:question_id>/add_answer", views.add_answer, name="add_answer")
+    path("question/<int:question_id>/add_answer", views.add_answer, name="add_answer"),
+    path("question/<int:question_id>/like", views.like_question, name="like_question"),
+    path("question/<int:question_id>/dislike", views.dislike_question, name="dislike_question")
 ]

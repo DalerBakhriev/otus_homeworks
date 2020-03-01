@@ -11,12 +11,6 @@
 
     <hr>
 
-    <form action="{% url 'questions:add_answer' question.id %}" method="POST">
-    {% csrf_token %}
-    <textarea name="text" required="" placeholder="Текст ответа" cols="200" rows="20"></textarea><br>
-    <button type="submit">Оставить ответ</button>
-    </form>
-
     {% if answers %}
         {% for answer in answers %}
             <p>
@@ -25,8 +19,11 @@
             <p>{{ answer.text }}</p>
             <em>{{ answer.creation_date }}</em>
         {% endfor %}
-    {% else %}
-    No answers found.
     {% endif %}
+    <form action="{% url 'questions:add_answer' question.id %}" method="POST">
+        {% csrf_token %}
+        <textarea name="text" required="" placeholder="Текст ответа" cols="50" rows="15"></textarea><br>
+        <button type="submit">Оставить ответ</button>
+    </form>
 
 {% endblock %}

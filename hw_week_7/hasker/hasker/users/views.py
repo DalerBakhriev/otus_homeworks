@@ -1,6 +1,6 @@
-from django.contrib.auth import authenticate, login
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.contrib.auth import authenticate, login, logout
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 
 from .forms import (
@@ -18,7 +18,7 @@ def authenticate_user(request: HttpRequest,
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        return redirect(reverse("questions:ask_question"))
+        return HttpResponseRedirect(reverse("questions:questions"))
 
     return HttpResponse("Not authorized", status=401)
 
@@ -26,13 +26,13 @@ def authenticate_user(request: HttpRequest,
 def signup_user(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
-        form = UserSignupForm(data=request.POST)
+        form = UserSignupForm(request.POST, request.FILES)
         if not form.is_valid():
             return HttpResponse(f"{form.errors}")
         user_model = form.save(commit=False)
         user_model.set_password(user_model.password)
         user_model.save()
-        return redirect(reverse("users:login"))
+        return HttpResponseRedirect(reverse("users:login"))
 
     form = UserSignupForm()
 
@@ -57,19 +57,28 @@ def login_user(request: HttpRequest) -> HttpResponse:
                   context={"form": form})
 
 
+def logout_user(request: HttpRequest) -> HttpResponse:
+    logout(request)
+
+    return HttpResponseRedirect(reverse("questions:questions"))
+
+
 def change_user_settings(request: HttpRequest) -> HttpResponse:
 
-    # TODO: Make normal user parameters update with form validation
     if request.method == "POST":
-        User.objects.filter(username=request.user.username).update(
-            username=request.POST["username"],
-            email=request.POST["email"],
-            avatar=request.POST["avatar"]
+        user = get_object_or_404(User, id=request.user.id)
+        form = UserSettingsForm(
+            data=request.POST,
+            files=request.FILES,
+            instance=user
         )
-        return redirect(to=reverse("login"))
+        if not form.is_valid():
+            return HttpResponse(form.errors)
+        form.save(commit=True)
+        return HttpResponseRedirect(redirect_to=reverse("users:login"))
 
-    user_name = request.user.username
-    user_model = User.objects.get(username=user_name)
+    user_id = request.user.id
+    user_model = User.objects.get(id=user_id)
     form = UserSettingsForm(instance=user_model)
 
     return render(request=request,

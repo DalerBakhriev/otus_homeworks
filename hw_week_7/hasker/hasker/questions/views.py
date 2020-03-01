@@ -1,5 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.db.models import Q, F, Count
 from django.http import (
     HttpResponse,
     HttpRequest,
@@ -17,7 +17,10 @@ from .. import settings
 
 def index(request: HttpRequest) -> HttpResponse:
 
-    questions = Question.objects.order_by("rating", "creation_date")[:settings.MAX_QUESTIONS_ON_PAGE]
+    questions = Question.objects.annotate(
+        likes=Count("users_who_liked"),
+        dislikes=Count("users_who_disliked"),
+    ).order_by(F("dislikes") - F("likes"), "-creation_date")[:settings.MAX_QUESTIONS_ON_PAGE]
 
     return render(request,
                   template_name="questions/questions.html",
@@ -28,8 +31,11 @@ def search_question(request: HttpRequest) -> HttpResponse:
 
     query = request.POST["query"]
     questions_for_query = Question.objects.filter(
-        Q(title__contains=query) | Q(text__contains=query)
-    ).order_by("-rating", "-creation_date")
+        Q(title__icontains=query) | Q(text__icontains=query)
+    ).annotate(
+        likes=Count("users_who_liked"),
+        dislikes=Count("users_who_disliked"),
+    ).order_by(F("dislikes") - F("likes"), "-creation_date")[:settings.MAX_QUESTIONS_ON_PAGE]
 
     return render(request,
                   template_name="questions/questions.html",
@@ -73,6 +79,22 @@ def get_question(question_id: int) -> Question:
         raise Http404("Вопрос не найден")
 
     return question
+
+
+def like_question(request: HttpRequest, question_id: int) -> HttpResponse:
+
+    question: Question = get_question(question_id)
+    question.like(user=request.user)
+
+    return HttpResponseRedirect(reverse("questions:questions"))
+
+
+def dislike_question(request: HttpRequest, question_id: int) -> HttpResponse:
+
+    question: Question = get_question(question_id)
+    question.dislike(user=request.user)
+
+    return HttpResponseRedirect(reverse("questions:questions"))
 
 
 def question_detail(request: HttpRequest, question_id: int) -> HttpResponse:

@@ -9,12 +9,8 @@ class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
         fields = (
-            "title",
-            "text",
-            "author",
-            "rating",
-            "tags",
-            "answer"
+            "title", "text", "author",
+            "tags", "answer"
         )
         widgets = {"rating": forms.NumberInput}
         labels = {
