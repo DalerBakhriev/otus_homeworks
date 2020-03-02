@@ -24,7 +24,7 @@ SECRET_KEY = '&8pr2=2g1s(d^xtokq&e%wrqgs^i1w)d733_qdc(ce+&d+l8$i'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -78,11 +78,11 @@ WSGI_APPLICATION = 'hasker.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': "hasker_db",
-        'USER' : 'hasker_admin',
-        'PASSWORD' : 'Daler1995',
-        'HOST' : '127.0.0.1',
-        'PORT' : '5432'
+        'NAME': os.getenv("POSTGRES_DB"),
+        'USER' : os.getenv("POSTGRES_USER"),
+        'PASSWORD' : os.getenv("POSTGRES_PASSWORD"),
+        'HOST' : os.getenv("POSTGRES_HOST"),
+        'PORT' : os.getenv("POSTGRES_PORT")
     }
 }
 
@@ -137,3 +137,7 @@ MAX_QUESTIONS_ON_PAGE = 20
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 MEDIA_URL = "/media/"
+
+
+EMAIL_HOST_USER = os.getenv("EMAIL")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")

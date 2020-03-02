@@ -12,6 +12,7 @@ pyjwt = "*"
 pillow = "*"
 psycopg2-binary = "*"
 pylint = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "3.8"
