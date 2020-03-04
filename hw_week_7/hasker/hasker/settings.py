@@ -56,7 +56,7 @@ ROOT_URLCONF = 'hasker.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ["hasker/templates"],
+        'DIRS': [os.path.join(BASE_DIR, "hasker", "templates")],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -128,16 +128,18 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "hasker", "static")
+]
 STATIC_URL = "/static/"
 
 AUTH_USER_MODEL = "users.User"
 
 MAX_QUESTIONS_ON_PAGE = 20
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, "hasker", "media")
 
 MEDIA_URL = "/media/"
-
 
 EMAIL_HOST_USER = os.getenv("EMAIL")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
