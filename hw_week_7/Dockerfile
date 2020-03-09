@@ -1,11 +1,12 @@
 FROM python:3.8
 RUN pip install pipenv
-COPY Pipfile* /usr/src/
-RUN cd /usr/src && pipenv lock --requirements > requirements.txt
-RUN pip install -r /usr/src/requirements.txt
-ENV PYTHONPATH /usr/src/
+RUN mkdir /src
+COPY Pipfile* /src/
+RUN cd /src && pipenv lock --requirements > requirements.txt
+RUN pip install -r /src/requirements.txt
+ENV PYTHONPATH /src/
 
-COPY .env /usr/src/
-COPY hasker /usr/src/hasker
+COPY .env /src/
+COPY hasker /src/hasker
 
-WORKDIR /usr/src/hasker
+WORKDIR /src/hasker
