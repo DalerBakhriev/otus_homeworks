@@ -9,7 +9,7 @@ from django.db import models
 class User(AbstractUser):
 
     avatar = models.ImageField(
-        default="imgs/default_avatar.img",
+        default="imgs/default_avatar.jpg",
         upload_to="imgs/",
         null=True,
         blank=True
