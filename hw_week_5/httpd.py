@@ -92,9 +92,9 @@ def get_path_for_server(root_dir: str, parsed_path: str) -> str:
     :return: path for server is string format
     """
 
-    path_for_server = f"{root_dir}{parsed_path}"
+    path_for_server = os.path.normpath(f"{root_dir}{parsed_path}")
     if not parsed_path.split("/")[-1]:
-        path_for_server = f"{path_for_server}index.html"
+        path_for_server = os.path.join(path_for_server, "index.html")
     logging.debug("Path for server is %s", path_for_server)
 
     return path_for_server
@@ -328,7 +328,7 @@ if __name__ == "__main__":
     argument_parser.add_argument("-h", "--host", type=str, default="localhost")
     argument_parser.add_argument("-p", "--port", type=int, default=8080)
     argument_parser.add_argument("-w", "--workers", type=int, default=4)
-    argument_parser.add_argument("-r", "--root", type=str, default="./httptest/dir2/")
+    argument_parser.add_argument("-r", "--root", type=str, default="./httptest/dir2")
     argument_parser.add_argument("-l", "--connections-limit", type=int, default=1000)
     argument_parser.add_argument("-d", "--debug", action="store_true")
 
