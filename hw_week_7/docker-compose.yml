@@ -32,7 +32,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: bash -c "python manage.py migrate && gunicorn hasker.wsgi -w 4 -b 0.0.0.0"
+    command: bash -c "python manage.py migrate && python manage.py runserver"
     env_file:
       - .env
     container_name:

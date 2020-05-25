@@ -1,4 +1,3 @@
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, F, Count
 from django.http import (
     HttpResponse,
@@ -6,14 +5,14 @@ from django.http import (
     HttpResponseRedirect,
     Http404
 )
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.core.mail import send_mail
 
 from .forms import AskQuestionForm
 from .models import Question, Tag, User
-from .. import settings
+from django.conf import settings
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -45,10 +44,7 @@ def search_question(request: HttpRequest) -> HttpResponse:
 
 def search_question_by_tag(request: HttpRequest, tag_id: int) -> HttpResponse:
 
-    try:
-        questions_by_tag = Tag.objects.get(id=tag_id).question_set.all()
-    except ObjectDoesNotExist:
-        raise Http404("Tag not found")
+    questions_by_tag = get_object_or_404(Tag, id=tag_id).question_set.all()
 
     return render(request,
                   template_name="questions/questions.html",
@@ -74,10 +70,7 @@ def ask_question(request: HttpRequest) -> HttpResponse:
 
 def get_question(question_id: int) -> Question:
 
-    try:
-        question = Question.objects.get(id=question_id)
-    except ObjectDoesNotExist:
-        raise Http404("Вопрос не найден")
+    question = get_object_or_404(Question, id=question_id)
 
     return question
 
@@ -118,7 +111,7 @@ def notify_question_author(user: User, question: Question) -> None:
         subject="Hasker: new answer.",
         message=f"Received new answer from user {user.username}\n"
                 f"Here is link for question: {question.url}",
-        from_email=settings.SERVICE_EMAIL,
+        from_email=settings.EMAIL_HOST_PASSWORD,
         recipient_list=[question.author.email],
         fail_silently=True
     )

@@ -1,88 +1,36 @@
-from django.contrib.auth import authenticate, login, logout
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, get_object_or_404
-from django.urls import reverse
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import CreateView, UpdateView
+from django.urls import reverse_lazy
 
 from .forms import (
     UserSettingsForm,
     UserLoginForm,
     UserSignupForm
 )
-from .models import User
 
 
-def authenticate_user(request: HttpRequest,
-                      username: str,
-                      password: str) -> HttpResponse:
+class SignupView(CreateView):
 
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        login(request, user)
-        return HttpResponseRedirect(reverse("questions:questions"))
-
-    return HttpResponse("Not authorized", status=401)
+    form_class = UserSignupForm
+    template_name = "users/user_signup.html"
+    success_url = reverse_lazy("users:login")
 
 
-def signup_user(request: HttpRequest) -> HttpResponse:
+class MyLoginView(LoginView):
 
-    if request.method == "POST":
-        form = UserSignupForm(request.POST, request.FILES)
-        if not form.is_valid():
-            return HttpResponse(f"{form.errors}")
-        user_model = form.save(commit=False)
-        user_model.set_password(user_model.password)
-        user_model.save()
-        return HttpResponseRedirect(reverse("users:login"))
-
-    form = UserSignupForm()
-
-    return render(request=request,
-                  template_name="users/user_signup.html",
-                  context={"form": form})
+    form_class = UserLoginForm
+    template_name = "users/login.html"
+    next = reverse_lazy("questions:questions")
 
 
-def login_user(request: HttpRequest) -> HttpResponse:
-
-    if request.method == "POST":
-        return authenticate_user(
-            request,
-            username=request.POST["login"],
-            password=request.POST["password"]
-        )
-
-    form = UserLoginForm()
-
-    return render(request=request,
-                  template_name="users/login.html",
-                  context={"form": form})
+class MyLogoutView(LogoutView):
+    next = reverse_lazy("questions:questions")
 
 
-def logout_user(request: HttpRequest) -> HttpResponse:
-    logout(request)
-
-    return HttpResponseRedirect(reverse("questions:questions"))
-
-
-def change_user_settings(request: HttpRequest) -> HttpResponse:
-
-    if request.method == "POST":
-        user = get_object_or_404(User, id=request.user.id)
-        form = UserSettingsForm(
-            data=request.POST,
-            files=request.FILES,
-            instance=user
-        )
-        if not form.is_valid():
-            return HttpResponse(form.errors)
-        form.save(commit=True)
-        return HttpResponseRedirect(redirect_to=reverse("users:login"))
-
-    user_id = request.user.id
-    user_model = User.objects.get(id=user_id)
-    form = UserSettingsForm(instance=user_model)
-
-    return render(request=request,
-                  template_name="users/user_settings.html",
-                  context={"form": form})
+class UserEditView(LoginRequiredMixin, UpdateView):
+    form_class = UserSettingsForm
+    template_name = "users/user_settings.html"
+    success_url = reverse_lazy("users:login")
 
 
