@@ -4,12 +4,6 @@ from django.utils.translation import gettext_lazy
 from django.core.exceptions import ValidationError
 
 
-class UserLoginForm(forms.Form):
-
-    login = forms.CharField(max_length=100)
-    password = forms.CharField(widget=forms.PasswordInput)
-
-
 class UserSettingsForm(forms.ModelForm):
 
     class Meta:

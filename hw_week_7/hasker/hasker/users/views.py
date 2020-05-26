@@ -2,12 +2,8 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, UpdateView
 from django.urls import reverse_lazy
-
-from .forms import (
-    UserSettingsForm,
-    UserLoginForm,
-    UserSignupForm
-)
+from .models import User
+from .forms import UserSettingsForm, UserSignupForm
 
 
 class SignupView(CreateView):
@@ -19,7 +15,6 @@ class SignupView(CreateView):
 
 class MyLoginView(LoginView):
 
-    form_class = UserLoginForm
     template_name = "users/login.html"
     next = reverse_lazy("questions:questions")
 
@@ -29,8 +24,15 @@ class MyLogoutView(LogoutView):
 
 
 class UserEditView(LoginRequiredMixin, UpdateView):
+
+    login_url = reverse_lazy("users:login")
+    permission_denied_message = "You are not logged in"
     form_class = UserSettingsForm
+    model = User
     template_name = "users/user_settings.html"
     success_url = reverse_lazy("users:login")
+
+    def get_object(self, queryset=None):
+        return self.request.user
 
 
