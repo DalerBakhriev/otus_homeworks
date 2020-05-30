@@ -71,6 +71,10 @@ FILE_UPLOAD_HANDLERS = [
     "django.core.files.uploadhandler.TemporaryFileUploadHandler"
 ]
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+)
+
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -82,7 +86,7 @@ USE_L10N = True
 USE_TZ = True
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "hasker", "static")
+    os.path.join(BASE_DIR, "static")
 ]
 STATIC_URL = "/static/"
 
@@ -90,9 +94,12 @@ AUTH_USER_MODEL = "users.User"
 
 MAX_QUESTIONS_ON_PAGE = 20
 
-MEDIA_ROOT = os.path.join(BASE_DIR, "hasker", "media")
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 MEDIA_URL = "/media/"
+
+LOGIN_URL = "users:login"
+LOGIN_REDIRECT_URL = "questions:questions"
 
 EMAIL_HOST_USER = os.getenv("EMAIL")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")

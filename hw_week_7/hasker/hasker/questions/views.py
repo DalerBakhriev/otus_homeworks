@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db.models import Q, F, Count
 from django.http import (
     HttpResponse,
@@ -8,11 +10,9 @@ from django.http import (
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.core.mail import send_mail
 
 from .forms import AskQuestionForm
 from .models import Question, Tag, User
-from django.conf import settings
 
 
 def index(request: HttpRequest) -> HttpResponse:
