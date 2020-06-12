@@ -17,7 +17,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'hasker.questions.apps.QuestionsConfig',
-    'hasker.users.apps.UsersConfig'
+    'hasker.users.apps.UsersConfig',
+    'rest_framework',
+    'rest_framework_swagger'
 ]
 
 MIDDLEWARE = [
@@ -75,6 +77,16 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
+MAX_QUESTIONS_ON_PAGE = 20
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': MAX_QUESTIONS_ON_PAGE,
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -91,8 +103,6 @@ STATICFILES_DIRS = [
 STATIC_URL = "/static/"
 
 AUTH_USER_MODEL = "users.User"
-
-MAX_QUESTIONS_ON_PAGE = 20
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 

@@ -6,6 +6,7 @@ from django.urls import path, include
 urlpatterns = [
     path("", include("hasker.questions.urls")),
     path("users/", include("hasker.users.urls")),
+    path("api/", include("hasker.api.urls")),
     path("admin/", admin.site.urls),
 ]
 
