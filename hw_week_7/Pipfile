@@ -15,7 +15,7 @@ pylint = "*"
 gunicorn = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
-django-rest-swagger = "*"
+drf-yasg = "*"
 
 [requires]
 python_version = "3.8"

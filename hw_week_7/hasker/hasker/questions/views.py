@@ -27,10 +27,13 @@ class QuestionListView(ListView):
     queryset: QuerySet
 
     def get_queryset(self):
-        return self.model.objects.annotate(
+
+        questions = self.model.objects.annotate(
             likes=Count("users_who_liked"),
             dislikes=Count("users_who_disliked"),
         ).order_by(F("dislikes") - F("likes"), "-creation_date")
+
+        return questions
 
 
 def index(request: HttpRequest) -> HttpResponse:

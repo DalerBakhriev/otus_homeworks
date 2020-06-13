@@ -19,7 +19,7 @@ INSTALLED_APPS = [
     'hasker.questions.apps.QuestionsConfig',
     'hasker.users.apps.UsersConfig',
     'rest_framework',
-    'rest_framework_swagger'
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [

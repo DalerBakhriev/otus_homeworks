@@ -1,17 +1,22 @@
 from django.db.models import F, Count
 from django.shortcuts import get_object_or_404
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
 from rest_framework import generics
+from rest_framework import permissions
 
 from . import serializers
 from ..questions.models import Question
 
 
 class QuestionsListView(generics.ListAPIView):
+
     serializer_class = serializers.QuestionSerializer
     queryset = Question.objects.all()
 
 
 class HotQuestionsListView(generics.ListAPIView):
+
     serializer_class = serializers.QuestionSerializer
 
     def get_queryset(self):
@@ -25,6 +30,7 @@ class HotQuestionsListView(generics.ListAPIView):
 
 
 class SearchQuestionListView(generics.ListAPIView):
+
     serializer_class = serializers.QuestionSerializer
 
     def get_queryset(self):
@@ -44,11 +50,13 @@ class SearchQuestionListView(generics.ListAPIView):
 
 
 class QuestionDetailView(generics.RetrieveAPIView):
+
     serializer_class = serializers.QuestionSerializer
     queryset = Question.objects.all()
 
 
 class AnswersListView(generics.ListAPIView):
+
     serializer_class = serializers.AnswerSerializer
 
     def get_queryset(self):
@@ -59,4 +67,14 @@ class AnswersListView(generics.ListAPIView):
         return question.answers.all()
 
 
-
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Questions API",
+      default_version='v1',
+      description="API for questions from hasker service",
+      contact=openapi.Contact(email="BakhrievDaler@yandex.ru"),
+      license=openapi.License(name="BSD License"),
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
