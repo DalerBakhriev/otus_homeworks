@@ -17,7 +17,7 @@ from .forms import AskQuestionForm
 from .models import Question, Tag, User
 
 
-class QuestionListView(ListView):
+class BaseQuestionListView(ListView):
 
     template_name = "questions/questions.html"
     context_object_name = "questions"
@@ -25,6 +25,9 @@ class QuestionListView(ListView):
     model = Question
     paginate_by = settings.MAX_QUESTIONS_ON_PAGE
     queryset: QuerySet
+
+
+class QuestionListView(BaseQuestionListView):
 
     def get_queryset(self):
 
@@ -48,6 +51,25 @@ def index(request: HttpRequest) -> HttpResponse:
                   context={"questions": questions})
 
 
+class SearchQuestionListView(BaseQuestionListView):
+
+    def get_queryset(self):
+
+        query = self.kwargs.get("query")
+
+        if query is None:
+            return Question.objects.all()
+
+        questions_for_query = Question.objects.filter(
+            Q(title__icontains=query) | Q(text__icontains=query)
+        ).annotate(
+            likes=Count("users_who_liked"),
+            dislikes=Count("users_who_disliked"),
+        ).order_by(F("dislikes") - F("likes"), "-creation_date")[:settings.MAX_QUESTIONS_ON_PAGE]
+
+        return questions_for_query
+
+
 def search_question(request: HttpRequest) -> HttpResponse:
 
     query = request.POST["query"]
@@ -61,6 +83,14 @@ def search_question(request: HttpRequest) -> HttpResponse:
     return render(request,
                   template_name="questions/questions.html",
                   context={"questions": questions_for_query})
+
+
+class SearchQuestionByTagListView(BaseQuestionListView):
+
+    def get_queryset(self):
+        tag_id = self.kwargs.get("tag_id")
+        questions_by_tag = get_object_or_404(Tag, id=tag_id).question_set.all()
+        return questions_by_tag
 
 
 def search_question_by_tag(request: HttpRequest, tag_id: int) -> HttpResponse:
