@@ -141,7 +141,8 @@ class AddAnswerView(CreateView):
 
     model = Answer
     pk_url_kwarg = "question_id"
-    http_method_names = ['post']
+    http_method_names = ["post"]
+    fields = ["text"]
 
     def form_valid(self, form) -> HttpResponse:
 
@@ -149,6 +150,7 @@ class AddAnswerView(CreateView):
         question = get_object_or_404(Question, id=question_id)
 
         answer_text = self.kwargs.get("text")
+        print(answer_text)
         question.answers.create(
             text=answer_text,
             author=self.request.user,
@@ -161,4 +163,3 @@ class AddAnswerView(CreateView):
         )
 
         return HttpResponseRedirect(reverse("questions:question", args=(question.id,)))
-

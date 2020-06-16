@@ -75,4 +75,3 @@ class Answer(models.Model):
     )
     creation_date = models.DateField()
     is_correct = models.BooleanField(default=False)
-
