@@ -149,8 +149,8 @@ class AddAnswerView(CreateView):
         question_id = self.kwargs.get(self.pk_url_kwarg)
         question = get_object_or_404(Question, id=question_id)
 
-        answer_text = self.kwargs.get("text")
-        print(answer_text)
+        answer_text = self.request.POST["text"]
+
         question.answers.create(
             text=answer_text,
             author=self.request.user,

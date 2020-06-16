@@ -22,7 +22,7 @@
     {% endif %}
     <form action="{% url 'questions:add_answer' question.id %}" method="POST">
         {% csrf_token %}
-        <textarea name="text" required="" placeholder="Текст ответа" cols="50" rows="15"></textarea><br>
+        <textarea name="text" placeholder="Текст ответа" cols="50" rows="15" required></textarea><br>
         <button type="submit">Оставить ответ</button>
     </form>
 
