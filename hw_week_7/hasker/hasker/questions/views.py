@@ -3,6 +3,7 @@ from django.core.mail import send_mail
 from django.views.generic import DetailView, CreateView, ListView
 from django.db.models import Q, F, Count
 from django.db.models.query import QuerySet
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import (
     HttpResponse,
     HttpRequest,
@@ -67,7 +68,7 @@ class SearchQuestionByTagListView(BaseQuestionListView):
         return questions_by_tag
 
 
-class AskQuestionView(CreateView):
+class AskQuestionView(LoginRequiredMixin, CreateView):
 
     object: Question
     form_class = AskQuestionForm
@@ -137,7 +138,7 @@ def notify_question_author(user: User, question: Question) -> None:
     )
 
 
-class AddAnswerView(CreateView):
+class AddAnswerView(LoginRequiredMixin, CreateView):
 
     model = Answer
     pk_url_kwarg = "question_id"
