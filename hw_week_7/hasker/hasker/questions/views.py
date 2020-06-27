@@ -10,11 +10,12 @@ from django.http import (
     HttpResponseRedirect
 )
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 
 from .forms import AskQuestionForm
 from .models import Question, Tag, User, Answer
+from django.contrib.auth.decorators import login_required
 
 
 class BaseQuestionListView(ListView):
@@ -43,7 +44,7 @@ class SearchQuestionListView(BaseQuestionListView):
 
     def get_queryset(self):
 
-        query = self.kwargs.get("query")
+        query = self.request.GET.get("query")
 
         if query is None:
             return Question.objects.all()
@@ -87,6 +88,7 @@ class AskQuestionView(LoginRequiredMixin, CreateView):
         return self.object.get_absolute_url()
 
 
+@login_required(login_url=reverse_lazy("users:login"))
 def like_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
     question: Question = get_object_or_404(Question, id=question_id)
@@ -95,6 +97,7 @@ def like_question(request: HttpRequest, question_id: int) -> HttpResponse:
     return HttpResponseRedirect(reverse("questions:questions"))
 
 
+@login_required(login_url=reverse_lazy("users:login"))
 def dislike_question(request: HttpRequest, question_id: int) -> HttpResponse:
 
     question: Question = get_object_or_404(Question, id=question_id)
@@ -128,14 +131,12 @@ class QuestionDetailView(DetailView):
 
 def notify_question_author(user: User, question: Question) -> None:
 
-    send_mail(
-        subject="Hasker: new answer.",
-        message=f"Received new answer from user {user.username}\n"
-                f"Here is link for question: {question.url}",
-        from_email=settings.EMAIL_HOST_PASSWORD,
-        recipient_list=[question.author.email],
-        fail_silently=True
-    )
+    send_mail(subject="Hasker: new answer.",
+              message=f"Received new answer from user {user.username}\n"
+                      f"Here is link for question: {question.url}",
+              from_email=settings.EMAIL_HOST_PASSWORD,
+              recipient_list=[question.author.email],
+              fail_silently=True)
 
 
 class AddAnswerView(LoginRequiredMixin, CreateView):

@@ -27,8 +27,7 @@
         </h1>
     </li>
     <li>
-        <form action="{% url 'questions:search_question' %}" method="POST">
-        {% csrf_token %}
+        <form action="{% url 'questions:search_question' %}" method="GET">
         <input type="text" size="20" name="query">
         <button type="submit">Search</button>
     </form>
