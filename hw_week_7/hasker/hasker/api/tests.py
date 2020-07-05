@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
-from rest_framework.serializers import DateTimeField
+from rest_framework.serializers import DateTimeField, DateField
 
 from hasker.questions.models import Question, Answer
 from hasker.users.models import User
@@ -97,4 +97,17 @@ class ViewTestCases(APITestCase):
             response.data["tags"],
             [tag.name for tag in self.test_question.tags.all()]
         )
+
+    def test_question_answers_list(self):
+
+        url = reverse("api:questions:answers", kwargs={"question_id": self.test_question.id})
+        response = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['content-type'], 'application/json')
+        print(response.data)
+
+        self.assertEqual(response.data["results"][0]["id"], self.test_answer.id)
+        self.assertEqual(response.data["results"][0]["text"], self.test_answer.text)
+        self.assertEqual(response.data["results"][0]["author"], self.test_answer.author.id)
+
 
