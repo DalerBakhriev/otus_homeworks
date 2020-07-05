@@ -7,19 +7,19 @@ from rest_framework_simplejwt.views import (
 
 from . import views
 
-token_patterns = [
+token_patterns = ([
     path("", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("verify/", TokenVerifyView.as_view(), name="token_verify")
-]
+], "token")
 
-question_patterns = [
+question_patterns = ([
     path("", views.QuestionsListView.as_view(), name="questions"),
     path("hot/", views.HotQuestionsListView.as_view(), name="hot_questions"),
     path("search_question/", views.SearchQuestionListView.as_view(), name="search_question"),
     path("<int:question_id>/", views.QuestionDetailView.as_view(), name="question_detail"),
     path("<int:question_id>/answers", views.AnswersListView.as_view(), name="answers")
-]
+], "questions")
 
 
 app_name = "api"

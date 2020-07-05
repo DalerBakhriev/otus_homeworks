@@ -1,4 +1,4 @@
-from django.db.models import F, Count
+from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
@@ -6,7 +6,7 @@ from rest_framework import generics
 from rest_framework import permissions
 
 from . import serializers
-from ..questions.models import Question
+from hasker.questions.models import Question
 
 
 class QuestionsListView(generics.ListAPIView):
@@ -35,7 +35,7 @@ class SearchQuestionListView(generics.ListAPIView):
 
     def get_queryset(self):
 
-        query = self.kwargs.get("query")
+        query = self.request.GET.get("query")
         if query is None:
             return Question.objects.all()
 
@@ -52,6 +52,8 @@ class SearchQuestionListView(generics.ListAPIView):
 class QuestionDetailView(generics.RetrieveAPIView):
 
     serializer_class = serializers.QuestionSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "question_id"
     queryset = Question.objects.all()
 
 

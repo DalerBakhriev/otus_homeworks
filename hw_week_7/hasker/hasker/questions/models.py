@@ -26,7 +26,7 @@ class Question(models.Model):
     )
     author = models.ForeignKey(
         to=User,
-        related_name="author",
+        related_name="questions",
         on_delete=models.CASCADE
     )
     creation_date = models.DateTimeField(default=timezone.now)
