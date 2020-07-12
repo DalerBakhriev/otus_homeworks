@@ -105,7 +105,7 @@ class BaseActionView(LoginRequiredMixin, CreateView):
 
         return url_for_redirect
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs) -> HttpResponse:
 
         action_object_id = int(self.kwargs.get(self.pk_url_kwarg))
         action_object = get_object_or_404(self.model, id=action_object_id)

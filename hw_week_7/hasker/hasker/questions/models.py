@@ -1,4 +1,5 @@
 from typing import Union
+
 from django.conf import settings
 from django.db import models, transaction
 from django.urls import reverse
