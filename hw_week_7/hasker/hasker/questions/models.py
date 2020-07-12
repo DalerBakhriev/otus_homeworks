@@ -1,5 +1,5 @@
 from typing import Union
-
+from django.conf import settings
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
@@ -43,7 +43,7 @@ class AbstractQuestionAnswer(models.Model):
 class Question(AbstractQuestionAnswer):
 
     author = models.ForeignKey(
-        to=User,
+        to=settings.AUTH_USER_MODEL,
         related_name="questions",
         on_delete=models.CASCADE
     )
@@ -65,7 +65,7 @@ class Question(AbstractQuestionAnswer):
 class Answer(AbstractQuestionAnswer):
 
     author = models.ForeignKey(
-        to=User,
+        to=settings.AUTH_USER_MODEL,
         related_name="answers",
         on_delete=models.CASCADE
     )
@@ -89,7 +89,7 @@ class AbstractUserAction(models.Model):
 class QuestionAction(AbstractUserAction):
 
     user = models.ForeignKey(
-        to=User,
+        to=settings.AUTH_USER_MODEL,
         related_name="question_actions",
         on_delete=models.CASCADE
     )
@@ -103,7 +103,7 @@ class QuestionAction(AbstractUserAction):
 class AnswerAction(AbstractUserAction):
 
     user = models.ForeignKey(
-        to=User,
+        to=settings.AUTH_USER_MODEL,
         related_name="answer_actions",
         on_delete=models.CASCADE
     )
