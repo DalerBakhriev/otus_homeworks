@@ -1,4 +1,4 @@
-from django.db.models import Count, F, Q
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
@@ -22,9 +22,8 @@ class HotQuestionsListView(generics.ListAPIView):
     def get_queryset(self):
 
         questions = Question.objects.annotate(
-            likes=Count("users_who_liked"),
-            dislikes=Count("users_who_disliked"),
-        ).order_by(F("dislikes") - F("likes"), "-creation_date")
+            Sum("actions__action")
+        ).order_by("-actions__action__sum", "-creation_date")
 
         return questions
 
@@ -42,9 +41,8 @@ class SearchQuestionListView(generics.ListAPIView):
         questions_for_query = Question.objects.filter(
             Q(title__icontains=query) | Q(text__icontains=query)
         ).annotate(
-            likes=Count("users_who_liked"),
-            dislikes=Count("users_who_disliked"),
-        ).order_by(F("dislikes") - F("likes"), "-creation_date")
+            Sum("actions__action")
+        ).order_by("-actions__action__sum", "-creation_date")
 
         return questions_for_query
 

@@ -19,9 +19,11 @@ class SignupView(CreateView):
     success_url = reverse_lazy("users:login")
 
     def form_valid(self, form: UserSignupForm) -> HttpResponse:
+
         self.object = form.save(commit=False)
         self.object.set_password(self.object.password)
         self.object.save()
+
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -47,5 +49,3 @@ class UserEditView(LoginRequiredMixin, UpdateView):
 
     def get_object(self, queryset=None):
         return self.request.user
-
-

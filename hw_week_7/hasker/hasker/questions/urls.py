@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 
 from . import views
 
@@ -10,6 +10,10 @@ urlpatterns = [
     path("tag/<int:tag_id>", views.SearchQuestionByTagListView.as_view(), name="search_question_by_tag"),
     path("question/<int:question_id>", views.QuestionDetailView.as_view(), name="question"),
     path("question/<int:question_id>/add_answer", views.AddAnswerView.as_view(), name="add_answer"),
-    path("question/<int:question_id>/like", views.like_question, name="like_question"),
-    path("question/<int:question_id>/dislike", views.dislike_question, name="dislike_question")
+    re_path(r'^question/(?P<question_id>\d+)/action/(?P<action>[+-]1)',
+            views.QuestionActionView.as_view(),
+            name="question_action"),
+    re_path(r'^answer/(?P<answer_id>\d+)/action/(?P<action>[+-]1)',
+            views.AnswerActionView.as_view(),
+            name="answer_action")
 ]

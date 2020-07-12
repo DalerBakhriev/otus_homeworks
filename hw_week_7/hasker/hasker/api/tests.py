@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
-from rest_framework.serializers import DateTimeField, DateField
+from rest_framework.serializers import DateTimeField
 
 from hasker.questions.models import Question, Answer
 from hasker.users.models import User

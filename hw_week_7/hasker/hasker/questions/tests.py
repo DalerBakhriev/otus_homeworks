@@ -62,7 +62,7 @@ class QuestionsListIndexTestCases(TestCase):
 
     def test_sorting_by_likes_number(self):
 
-        self.questions["question_3"].like(user=self.test_user)
+        self.questions["question_3"].make_user_action(user=self.test_user, action=1)
         response = self.client.get(reverse_lazy("questions:questions"))
         self.assertListEqual(
             list(response.context["questions"]),

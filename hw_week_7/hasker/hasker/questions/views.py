@@ -1,16 +1,14 @@
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
-from django.db.models import Q, F, Count
+from django.db.models import Q, F, Count, Sum
 from django.db.models.query import QuerySet
 from django.http import (
     HttpResponse,
-    HttpRequest,
     HttpResponseRedirect
 )
 from django.shortcuts import get_object_or_404
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import DetailView, CreateView, ListView
 
@@ -33,9 +31,8 @@ class QuestionListView(BaseQuestionListView):
     def get_queryset(self):
 
         questions = self.model.objects.annotate(
-            likes=Count("users_who_liked"),
-            dislikes=Count("users_who_disliked"),
-        ).order_by(F("dislikes") - F("likes"), "-creation_date")
+            Sum("actions__action")
+        ).order_by("-actions__action__sum", "-creation_date")
 
         return questions
 
@@ -52,9 +49,8 @@ class SearchQuestionListView(BaseQuestionListView):
         questions_for_query = Question.objects.filter(
             Q(title__icontains=query) | Q(text__icontains=query)
         ).annotate(
-            likes=Count("users_who_liked"),
-            dislikes=Count("users_who_disliked"),
-        ).order_by(F("dislikes") - F("likes"), "-creation_date")[:settings.MAX_QUESTIONS_ON_PAGE]
+            Sum("actions__action"),
+        ).order_by("-actions__action__sum", "-creation_date")[:settings.MAX_QUESTIONS_ON_PAGE]
 
         return questions_for_query
 
@@ -88,22 +84,47 @@ class AskQuestionView(LoginRequiredMixin, CreateView):
         return self.object.get_absolute_url()
 
 
-@login_required(login_url=reverse_lazy("users:login"))
-def like_question(request: HttpRequest, question_id: int) -> HttpResponse:
+class BaseActionView(LoginRequiredMixin, CreateView):
 
-    question: Question = get_object_or_404(Question, id=question_id)
-    question.like(user=request.user)
+    http_method_names = ["get"]
 
-    return HttpResponseRedirect(reverse("questions:questions"))
+    def get_redirect_url(self) -> str:
+
+        if issubclass(self.model, Question):
+            url_for_redirect = reverse_lazy("questions:questions")
+        elif issubclass(self.model, Answer):
+            answer = get_object_or_404(self.model, id=int(self.kwargs.get(self.pk_url_kwarg)))
+            url_for_redirect = reverse_lazy("questions:question", args=(answer.question.id,))
+        else:
+            raise ValueError(
+                f"Wrong model instance. "
+                f"Should be one of (Question, Answer), not {type(self.model)}"
+            )
+
+        return url_for_redirect
+
+    def get(self, request, *args, **kwargs):
+
+        action_object_id = int(self.kwargs.get(self.pk_url_kwarg))
+        action_object = get_object_or_404(self.model, id=action_object_id)
+        action_object.make_user_action(
+            user=self.request.user,
+            action=int(self.kwargs.get("action"))
+        )
+
+        return HttpResponseRedirect(self.get_redirect_url())
 
 
-@login_required(login_url=reverse_lazy("users:login"))
-def dislike_question(request: HttpRequest, question_id: int) -> HttpResponse:
+class QuestionActionView(BaseActionView):
 
-    question: Question = get_object_or_404(Question, id=question_id)
-    question.dislike(user=request.user)
+    model = Question
+    pk_url_kwarg = "question_id"
 
-    return HttpResponseRedirect(reverse("questions:questions"))
+
+class AnswerActionView(BaseActionView):
+
+    model = Answer
+    pk_url_kwarg = "answer_id"
 
 
 class QuestionDetailView(DetailView):
@@ -164,4 +185,4 @@ class AddAnswerView(LoginRequiredMixin, CreateView):
             question=question
         )
 
-        return HttpResponseRedirect(reverse("questions:question", args=(question.id,)))
+        return HttpResponseRedirect(reverse_lazy("questions:question", args=(question.id,)))
