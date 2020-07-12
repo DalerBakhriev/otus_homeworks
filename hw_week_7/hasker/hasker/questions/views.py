@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
-from django.db.models import Q, F, Count, Sum
+from django.db.models import Q, Sum
 from django.db.models.query import QuerySet
 from django.http import (
     HttpResponse,
@@ -92,9 +92,11 @@ class BaseActionView(LoginRequiredMixin, CreateView):
 
         if issubclass(self.model, Question):
             url_for_redirect = reverse_lazy("questions:questions")
+
         elif issubclass(self.model, Answer):
             answer = get_object_or_404(self.model, id=int(self.kwargs.get(self.pk_url_kwarg)))
             url_for_redirect = reverse_lazy("questions:question", args=(answer.question.id,))
+
         else:
             raise ValueError(
                 f"Wrong model instance. "
@@ -136,7 +138,9 @@ class QuestionDetailView(DetailView):
     def get_context_data(self, **kwargs):
 
         context = super().get_context_data(**kwargs)
-        answers = self.object.answers.order_by("-is_correct", "-creation_date").all()
+        answers = self.object.answers.annotate(
+            Sum("actions__action"),
+        ).order_by("-is_correct", "-actions__action__sum", "-creation_date").all()
 
         context["answers"] = answers
 
@@ -167,7 +171,7 @@ class AddAnswerView(LoginRequiredMixin, CreateView):
     http_method_names = ["post"]
     fields = ["text"]
 
-    def form_valid(self, form) -> HttpResponse:
+    def post(self, response, *args, **kwargs) -> HttpResponse:
 
         question_id = self.kwargs.get(self.pk_url_kwarg)
         question = get_object_or_404(Question, id=question_id)
