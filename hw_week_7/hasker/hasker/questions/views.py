@@ -210,5 +210,3 @@ class MarkCorrectAnswerView(LoginRequiredMixin, RedirectView):
         question.save()
 
         return super().get(request, *args, **kwargs)
-
-
