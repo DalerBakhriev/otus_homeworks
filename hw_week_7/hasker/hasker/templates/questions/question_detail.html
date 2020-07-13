@@ -9,6 +9,26 @@
 
     <em>{{ question.creation_date }}</em>
 
+    <Br>
+    <Br>
+
+    {% if question.correct_answer %}
+        <hr>
+        <strong>Correct answer</strong>
+        <p>
+            <strong>{{ question.correct_answer.author }}</strong>
+        </p>
+        <p>{{ question.correct_answer.text }}</p>
+        <form action="{% url 'questions:answer_action' question.correct_answer.id '+1' %}" method="GET">
+            <button type="submit">Like</button>
+        </form>
+        <form action="{% url 'questions:answer_action' question.correct_answer.id '-1' %}" method="GET">
+            <button type="submit">Dislike</button>
+        </form>
+        <p>Rating: {{ question.correct_answer.rating }}</p>
+        <em>{{ question.correct_answer.creation_date }}</em>
+    {% endif %}
+
     <hr>
 
     {% if answers %}
@@ -24,6 +44,11 @@
                 <form action="{% url 'questions:answer_action' answer.id '-1' %}" method="GET">
                     <button type="submit">Dislike</button>
                 </form>
+                {% if user == question.author %}
+                    <form action="{% url 'questions:mark_answer_as_correct' question.id answer.id %}" method="GET">
+                        <button type="submit">Mark answer as correct</button>
+                    </form>
+                {% endif %}
             {% endif %}
             <p>Rating: {{ answer.rating }}</p>
             <em>{{ answer.creation_date }}</em>

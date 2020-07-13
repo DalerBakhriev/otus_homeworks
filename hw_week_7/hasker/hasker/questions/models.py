@@ -54,6 +54,13 @@ class Question(AbstractQuestionAnswer):
         to=Tag,
         blank=True
     )
+    correct_answer = models.OneToOneField(
+        to="Answer",
+        null=True,
+        blank=True,
+        related_name="correct_answer_for",
+        on_delete=models.CASCADE
+    )
 
     def get_absolute_url(self):
         return reverse("questions:question", kwargs={'question_id': self.pk})
@@ -75,7 +82,6 @@ class Answer(AbstractQuestionAnswer):
         related_name="answers",
         on_delete=models.CASCADE
     )
-    is_correct = models.BooleanField(default=False)
 
 
 class AbstractUserAction(models.Model):

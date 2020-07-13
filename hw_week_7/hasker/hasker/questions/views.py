@@ -10,7 +10,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import DetailView, CreateView, ListView
+from django.views.generic import DetailView, CreateView, ListView, RedirectView
 
 from .forms import AskQuestionForm
 from .models import Question, Tag, User, Answer
@@ -140,9 +140,14 @@ class QuestionDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         answers = self.object.answers.annotate(
             Sum("actions__action"),
-        ).order_by("-is_correct", "-actions__action__sum", "-creation_date").all()
+        ).order_by("-actions__action__sum", "-creation_date").all()
 
-        context["answers"] = answers
+        answers_for_context = []
+        for answer in answers:
+            if not hasattr(answer, "correct_answer_for"):
+                answers_for_context.append(answer)
+
+        context["answers"] = answers_for_context
 
         return context
 
@@ -164,29 +169,46 @@ def notify_question_author(user: User, question: Question) -> None:
               fail_silently=True)
 
 
-class AddAnswerView(LoginRequiredMixin, CreateView):
+class AddAnswerView(LoginRequiredMixin, RedirectView):
 
-    model = Answer
-    pk_url_kwarg = "question_id"
+    pattern_name = "questions:question"
     http_method_names = ["post"]
-    fields = ["text"]
 
-    def post(self, response, *args, **kwargs) -> HttpResponse:
+    def post(self, request, *args, **kwargs) -> HttpResponse:
 
-        question_id = self.kwargs.get(self.pk_url_kwarg)
+        question_id = kwargs["question_id"]
         question = get_object_or_404(Question, id=question_id)
 
-        answer_text = self.request.POST["text"]
+        answer_text = request.POST["text"]
 
         question.answers.create(
             text=answer_text,
-            author=self.request.user,
+            author=request.user,
             creation_date=timezone.now()
         )
 
         notify_question_author(
-            user=self.request.user,
+            user=request.user,
             question=question
         )
 
-        return HttpResponseRedirect(reverse_lazy("questions:question", args=(question.id,)))
+        return super().post(request, *args, **kwargs)
+
+
+class MarkCorrectAnswerView(LoginRequiredMixin, RedirectView):
+
+    pattern_name = "questions:question"
+
+    def get_redirect_url(self, *args, **kwargs):
+        return reverse_lazy(self.pattern_name, kwargs={"question_id": kwargs["question_id"]})
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+
+        question = get_object_or_404(Question, id=kwargs["question_id"])
+        answer = get_object_or_404(Answer, id=kwargs["answer_id"])
+        question.correct_answer = answer
+        question.save()
+
+        return super().get(request, *args, **kwargs)
+
+
