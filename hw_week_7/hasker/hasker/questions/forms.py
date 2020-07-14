@@ -31,3 +31,11 @@ class AskQuestionForm(forms.ModelForm):
         model = Question
         fields = ("title", "text", "tags")
 
+
+class TagForm(forms.ModelForm):
+
+    name = forms.CharField(max_length=100)
+
+    class Meta:
+        model = Tag
+        fields = ("name",)

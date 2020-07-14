@@ -10,6 +10,7 @@ urlpatterns = [
     path("tag/<int:tag_id>", views.SearchQuestionByTagListView.as_view(), name="search_question_by_tag"),
     path("question/<int:question_id>", views.QuestionDetailView.as_view(), name="question"),
     path("question/<int:question_id>/add_answer", views.AddAnswerView.as_view(), name="add_answer"),
+    path("create_tag", views.CreateTagView.as_view(), name="create_tag"),
     path("question/<int:question_id>/mark_answer_as_correct/<int:answer_id>",
          views.MarkCorrectAnswerView.as_view(),
          name="mark_answer_as_correct"),

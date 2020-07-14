@@ -40,7 +40,14 @@
     {% else %}
         <a href="{% url 'users:login' %}">Log in</a>
         <a href="{% url 'users:signup' %}">Sign up</a>
-    {% endif %}</li>
+    {% endif %}
+    </li>
+    <li>
+        {% if user.is_authenticated %}
+            <a href="{% url 'questions:create_tag' %}">Create tag</a>
+        {% endif %}
+    </li>
+
 </ul>
 <hr size="5">
 {% block content %} {% endblock %}

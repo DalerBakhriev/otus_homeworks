@@ -12,7 +12,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import DetailView, CreateView, ListView, RedirectView
 
-from .forms import AskQuestionForm
+from .forms import AskQuestionForm, TagForm
 from .models import Question, Tag, User, Answer
 
 
@@ -210,3 +210,12 @@ class MarkCorrectAnswerView(LoginRequiredMixin, RedirectView):
         question.save()
 
         return super().get(request, *args, **kwargs)
+
+
+class CreateTagView(LoginRequiredMixin, CreateView):
+
+    object: Tag
+    form_class = TagForm
+    template_name = "questions/create_tag.html"
+    http_method_names = ["get", "post"]
+    success_url = reverse_lazy("questions:questions")
