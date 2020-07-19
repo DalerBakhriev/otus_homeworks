@@ -4,9 +4,18 @@
 {% block content %}
 
 <h2>{{question.title}}</h2>
-
+    <p>
+        Asked by: <img src="{{ question.author.avatar.url}}" width="35" height="35">
+        {{ question.author.username }}
+    </p>
+    {% if question.tags.all %}
+        Tags:
+        {% for tag in question.tags.all %}
+            <a href="{% url 'questions:search_question_by_tag' tag.id %}">{{ tag.name }}</a>
+        {% endfor %}
+    {% endif %}
     <p>{{ question.text }}</p>
-
+    <p>Rating: {{ question.rating }}</p>
     <em>{{ question.creation_date }}</em>
 
     <Br>

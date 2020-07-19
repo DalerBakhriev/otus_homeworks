@@ -3,14 +3,16 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
 from django.db.models import Q, Sum
 from django.db.models.query import QuerySet
-from django.http import (
-    HttpResponse,
-    HttpResponseRedirect
-)
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import DetailView, CreateView, ListView, RedirectView
+from django.views.generic import (
+    DetailView,
+    CreateView,
+    ListView,
+    RedirectView
+)
 
 from .forms import AskQuestionForm, TagForm
 from .models import Question, Tag, User, Answer
@@ -30,7 +32,7 @@ class QuestionListView(BaseQuestionListView):
 
     def get_queryset(self):
 
-        questions = self.model.objects.annotate(
+        questions = self.model.objects.prefetch_related("tags").annotate(
             Sum("actions__action")
         ).order_by("-actions__action__sum", "-creation_date")
 
@@ -77,6 +79,8 @@ class AskQuestionView(LoginRequiredMixin, CreateView):
         self.object = form.save(commit=False)
         self.object.author = self.request.user
         self.object.save()
+
+        form.save_m2m()
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -147,7 +151,10 @@ class QuestionDetailView(DetailView):
             if not hasattr(answer, "correct_answer_for"):
                 answers_for_context.append(answer)
 
+        question_tags = self.object.tags.all()
+
         context["answers"] = answers_for_context
+        context["tags"] = question_tags
 
         return context
 

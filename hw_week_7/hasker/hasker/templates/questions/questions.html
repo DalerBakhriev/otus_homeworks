@@ -9,6 +9,14 @@
                 Asked by: <img src="{{ question.author.avatar.url}}" width="35" height="35">
                 {{ question.author.username }}
             </p>
+
+            {% if question.tags.all %}
+                Tags:
+                {% for tag in question.tags.all %}
+                    <a href="{% url 'questions:search_question_by_tag' tag.id %}">{{ tag.name }}</a>
+                {% endfor %}
+            {% endif %}
+
             {% if user.is_authenticated %}
                 <form action="{% url 'questions:question_action' question.id '+1' %}" method="GET">
                     <button type="submit">Like</button>
