@@ -1,11 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Hasker</title>
-</head>
-<body>
 {% extends "base.html" %}
+
+{% block header %}
+    {{ block.super }}
+{% endblock %}
+
+<body>
 {% block content %}
 
 <form action="{% url 'users:user_settings' %}" method="post" enctype="multipart/form-data">
@@ -16,4 +15,3 @@
 
 {% endblock %}
 </body>
-</html>

@@ -1,9 +1,11 @@
 {% load static %}
 <!DOCTYPE html>
 <html>
+
+{% block header %}
 <head>
   <meta charset="utf-8">
-  <title>{% block title %} {% endblock %}</title>
+  <title>{% block title %} Hasker {% endblock %}</title>
     {% block css %}
         <link rel="stylesheet" href="{% static "css/hasker.css" %}">
     {% endblock %}
@@ -17,9 +19,10 @@
             margin-right: 90px; /* Отступ слева */
             padding: 50px; /* Поля вокруг текста */
         }
-
     </style>
 </head>
+{% endblock %}
+
 <body>
 <ul class="hr">
     <li><h1>
