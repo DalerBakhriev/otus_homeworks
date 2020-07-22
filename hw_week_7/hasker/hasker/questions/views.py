@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
 from django.db.models import Q, Sum
 from django.db.models.query import QuerySet
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpRequest
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -13,6 +13,7 @@ from django.views.generic import (
     ListView,
     RedirectView
 )
+from typing import Optional
 
 from .forms import AskQuestionForm, TagForm
 from .models import Question, Tag, User, Answer
@@ -109,7 +110,7 @@ class BaseActionView(LoginRequiredMixin, CreateView):
 
         return url_for_redirect
 
-    def get(self, request, *args, **kwargs) -> HttpResponse:
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
 
         action_object_id = int(self.kwargs.get(self.pk_url_kwarg))
         action_object = get_object_or_404(self.model, id=action_object_id)
@@ -158,7 +159,7 @@ class QuestionDetailView(DetailView):
 
         return context
 
-    def get_object(self, queryset=None) -> Question:
+    def get_object(self, queryset: Optional[QuerySet] = None) -> Question:
 
         question_id = self.kwargs.get(self.pk_url_kwarg)
         question_object = get_object_or_404(Question, id=question_id)
@@ -181,7 +182,7 @@ class AddAnswerView(LoginRequiredMixin, RedirectView):
     pattern_name = "questions:question"
     http_method_names = ["post"]
 
-    def post(self, request, *args, **kwargs) -> HttpResponse:
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
 
         question_id = kwargs["question_id"]
         question = get_object_or_404(Question, id=question_id)
@@ -209,7 +210,7 @@ class MarkCorrectAnswerView(LoginRequiredMixin, RedirectView):
     def get_redirect_url(self, *args, **kwargs):
         return reverse_lazy(self.pattern_name, kwargs={"question_id": kwargs["question_id"]})
 
-    def get(self, request, *args, **kwargs) -> HttpResponse:
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
 
         question = get_object_or_404(Question, id=kwargs["question_id"])
         answer = get_object_or_404(Answer, id=kwargs["answer_id"])
