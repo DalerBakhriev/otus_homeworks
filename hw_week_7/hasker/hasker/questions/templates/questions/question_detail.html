@@ -5,7 +5,7 @@
 
 <h2>{{question.title}}</h2>
     <p>
-        Asked by: <img src="{{ question.author.avatar.url}}" width="35" height="35">
+        Asked by: <img src="{{ question.author.get_avatar_url}}" width="35" height="35">
         {{ question.author.username }}
     </p>
     {% if question.tags.all %}
