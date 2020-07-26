@@ -17,28 +17,28 @@ services:
     image: postgres:10.1-alpine
     build:
       context: db_init
-      dockerfile: db_init/Dockerfile
+      dockerfile: Dockerfile
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
       - .env
     container_name: postgres
     ports:
-      - 5433:5433
-    command: -p 5433
+      - 5434:5434
+    command: -p 5434
     restart: always
 
   web:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
-    command: bash -c "python manage.py migrate && python manage.py runserver"
     env_file:
       - .env
-    container_name:
-      hasker_service
+    container_name: hasker_service
+    volumes:
+      - ./hasker/static:/src/hasker/static
     ports:
-      - 8000:8000
+      - 8080:8080
     tty: true
     depends_on:
       - postgres

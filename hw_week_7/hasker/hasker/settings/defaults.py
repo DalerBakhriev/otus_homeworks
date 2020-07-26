@@ -4,7 +4,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = '&8pr2=2g1s(d^xtokq&e%wrqgs^i1w)d733_qdc(ce+&d+l8$i'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -17,11 +17,13 @@ INSTALLED_APPS = [
     'hasker.questions.apps.QuestionsConfig',
     'hasker.users.apps.UsersConfig',
     'rest_framework',
-    'drf_yasg'
+    'drf_yasg',
+    'whitenoise.runserver_nostatic'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -115,3 +117,4 @@ LOGIN_REDIRECT_URL = "questions:questions"
 
 EMAIL_HOST_USER = os.getenv("EMAIL")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+

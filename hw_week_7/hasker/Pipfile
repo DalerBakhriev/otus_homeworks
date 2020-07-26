@@ -16,6 +16,7 @@ gunicorn = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
 drf-yasg = "*"
+whitenoise = "*"
 
 [requires]
 python_version = "3.8"
