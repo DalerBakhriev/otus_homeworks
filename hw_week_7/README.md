@@ -9,5 +9,11 @@ Q&A analog of stackoverflow on Django 3.0
 ### Run
 ```
 git clone https://github.com/DalerBakhriev/otus_homeworks.git
-cd hw_week_7
-make prod
+cd hw_week_7/hasker
+make prod-up
+```
+
+### Stop
+```
+make prod-down
+```
