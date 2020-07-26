@@ -3,14 +3,18 @@ version: '3.3'
 services:
 
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     container_name: nginx
     ports:
       - 8080:8080
       - 80:8080
     volumes:
-      - ./hasker:/src
+      - .:/src
       - ./nginx:/etc/nginx/conf.d
+      - static_volume:/src/hasker/static/
+      - media_volume:/src/hasker/media/
+    networks:
+      - nginx_network
     depends_on:
       - web
 
@@ -21,6 +25,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+    networks:
+      - postgres_network
     env_file:
       - .env
     container_name: postgres
@@ -37,7 +43,11 @@ services:
       - .env
     container_name: hasker_service
     volumes:
-      - ./hasker/static:/src/hasker/static
+      - static_volume:/src/hasker/static/
+      - media_volume:/src/hasker/media/
+    networks:
+      - nginx_network
+      - postgres_network
     expose:
       - "8080"
     tty: true
@@ -47,3 +57,11 @@ services:
 
 volumes:
   postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  nginx_network:
+    driver: bridge
+  postgres_network:
+    driver: bridge
