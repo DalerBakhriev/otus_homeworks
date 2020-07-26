@@ -1,9 +1,9 @@
-.PHONY: prod_up
-prod_up:
+.PHONY: prod-up
+prod-up:
 	docker-compose up -d --build && docker logs -f hasker_service
 
-.PHONY: prod_down
-prod_down:
+.PHONY: prod-down
+prod-down:
 	docker-compose down
 
 .PHONY: dev
