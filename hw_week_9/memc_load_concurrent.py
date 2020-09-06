@@ -38,8 +38,8 @@ class ProcessResultReport(NamedTuple):
 
     """
     Named tuple with processing results
-    :param num_rocessed: number of successfully processed rows
-    :param num_erros: number of rows failed to process
+    :param num_processed: number of successfully processed rows
+    :param num_errors: number of rows failed to process
     """
 
     num_processed: int
@@ -70,6 +70,7 @@ def make_retries(method: Callable) -> Callable:
     wrapper.calls = 0
 
     return wrapper
+
 
 class KeyValueStorage:
 
@@ -135,12 +136,12 @@ class KeyValueStorage:
 class MemcachedUploader(threading.Thread):
 
     def __init__(self,
-                job_queue: queue.Queue,
-                results_report_queue: queue.Queue,
-                memcached_address: str,
-                retries_limit: int,
-                timeout: int,
-                dry_run: bool):
+                 job_queue: queue.Queue,
+                 results_report_queue: queue.Queue,
+                 memcached_address: str,
+                 retries_limit: int,
+                 timeout: int,
+                 dry_run: bool):
 
         super().__init__()
         self.job_queue = job_queue
@@ -213,14 +214,14 @@ def parse_apps_installed(line: str) -> Optional[AppsInstalled]:
         apps = [int(a.strip()) for a in raw_apps.split(",") if a.isdigit()]
         logging.info("Not all user apps are digits: `%s`" % line)
     try:
-        lat_as_num, lon_as_num = float(lat), float(lon)
+        lat, lon = float(lat), float(lon)
     except ValueError:
         logging.info("Invalid geo coords: `%s`" % line)
 
     return AppsInstalled(dev_type=dev_type,
                          dev_id=dev_id,
-                         lat=lat_as_num,
-                         lon=lon_as_num,
+                         lat=lat,
+                         lon=lon,
                          apps=apps)
 
 
@@ -234,6 +235,10 @@ def handle_single_file(file_path: str,
     Parses installed apps from single file
     and uploads results to memcached
     :param file_path: str with path to archived file
+    :param device_memcached: mappings from dev type to memcache storage address
+    :param timeout: timeout for storage connection
+    :param max_retries_number: maximum number of retries in case of storage connection failure
+    :param dry_run: True if should run dry otherwise False
     :return name of uploaded file
     """
 
@@ -326,7 +331,7 @@ def main(arguments):
 
     arguments_for_uploading = (
         (file_path, device_memcached, arguments.storage_timeout,
-        arguments.storage_max_retries, arguments.dry)
+         arguments.storage_max_retries, arguments.dry)
         for file_path in glob.iglob(arguments.pattern)
     )
 
@@ -364,8 +369,10 @@ if __name__ == '__main__':
     arg_parser.add_argument("--gaid", action="store", default="127.0.0.1:33014")
     arg_parser.add_argument("--adid", action="store", default="127.0.0.1:33015")
     arg_parser.add_argument("--dvid", action="store", default="127.0.0.1:33016")
-    arg_parser.add_argument("--storage-timeout", type=int, action="store", default=3, help="Timeout for storage connection in seconds")
-    arg_parser.add_argument("--storage-max-retries", type=int, action="store", default=3, help="Maximum retries number in case of failed saving")
+    arg_parser.add_argument("--storage-timeout", type=int, action="store", default=3,
+                            help="Timeout for storage connection in seconds")
+    arg_parser.add_argument("--storage-max-retries", type=int, action="store", default=3,
+                            help="Maximum retries number in case of failed saving")
 
     args = arg_parser.parse_args()
     logging.basicConfig(
