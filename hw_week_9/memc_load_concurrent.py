@@ -46,30 +46,8 @@ class ProcessResultReport(NamedTuple):
     num_errors: int
 
 
-def make_retries(method: Callable) -> Callable:
-
-    """
-    Decorator for making auto retries
-    for methods of key-value storage
-    """
-
-    @wraps(method)
-    def wrapper(self, *method_args, **method_kwargs):
-        result = None
-        try:
-            result = method(self, *method_args, **method_kwargs)
-        except Exception as exception:
-            logging.error("Something went wrong. Retrying...")
-            if wrapper.calls >= self.retries_limit:
-                raise exception
-            wrapper.calls += 1
-            self._reset_connection()
-            wrapper(self, *method_args, **method_kwargs)
-        return result
-
-    wrapper.calls = 0
-
-    return wrapper
+class ConnectionFailedError(Exception):
+    pass
 
 
 class KeyValueStorage:
@@ -86,6 +64,11 @@ class KeyValueStorage:
     
     def _connect_to_storage(self) -> None:
         self._storage = memcache.Client([self.address], socket_timeout=self.timeout)
+        for server in self._storage.servers:
+            if not server.connect():
+                raise ConnectionFailedError(
+                        "Failed to connect storage server with address %s" % str(server.address)
+                    )
     
     def _reset_connection(self) -> None:
 
@@ -105,8 +88,7 @@ class KeyValueStorage:
             return
         if self._storage:
             self._storage.disconnect_all()
-    
-    @make_retries
+
     def set_values(self, chunks: Dict[str, str]) -> ProcessResultReport:
 
         """
@@ -116,19 +98,25 @@ class KeyValueStorage:
         """
 
         num_processed = num_failed = 0
-        for key, packed in chunks.items():
-            if self.dry_run:
+        if self.dry_run:
+            for key, packed in chunks.items():
                 logging.debug("%s - %s -> %s" % (self.address, key, packed))
                 num_processed += 1
-                continue
-            try:
-                if self._storage:
-                    self._storage.set(key, packed)
-                    num_processed += 1
-                else:
-                    num_failed += 1
-            except Exception as exc:
-                num_failed += 1
+            return ProcessResultReport(num_processed, num_failed)
+
+        if self._storage:
+            failed_keys = self._storage.set_multi(chunks)
+            retries_number = 0
+            num_processed += len(chunks) - len(failed_keys)
+            num_failed += len(failed_keys)
+            while failed_keys and retries_number < self.retries_limit:
+                not_uploaded_chunks = {failed_key: chunks[failed_key] for failed_key in failed_keys}
+                failed_keys_in_retry = self._storage.set_multi(chunks)
+                num_processed_in_retry = len(failed_keys) - len(failed_keys_in_retry)
+                num_processed += num_processed_in_retry
+                num_failed -= num_processed_in_retry
+                failed_keys = failed_keys_in_retry
+                retries_number += 1
         
         return ProcessResultReport(num_processed, num_failed)
 
@@ -138,20 +126,13 @@ class MemcachedUploader(threading.Thread):
     def __init__(self,
                  job_queue: queue.Queue,
                  results_report_queue: queue.Queue,
-                 memcached_address: str,
-                 retries_limit: int,
-                 timeout: int,
-                 dry_run: bool):
+                 storage: KeyValueStorage):
 
         super().__init__()
         self.job_queue = job_queue
         self.results_report_queue = results_report_queue
-        self.storage = KeyValueStorage(
-            address=memcached_address,
-            retries_limit=retries_limit,
-            timeout=timeout,
-            dry_run=dry_run
-        )
+        self.storage = storage
+
 
     def run(self):
 
@@ -175,26 +156,13 @@ def dot_rename(path: str) -> None:
     os.rename(path, os.path.join(head, "." + fn))
 
 
-def prepare_installed_apps_for_serialization(apps_installed: AppsInstalled) -> Tuple:
-
-    """
-    Prepares serialized installed apps for serialization to string
-    and uploading to memcached
-    :param apps_installed: named tuple with information about installed apps
-    """
+def serialize_installed_apps(apps_installed: AppsInstalled) -> Tuple[str, str]:
 
     user_apps = appsinstalled_pb2.UserApps()
     user_apps.lat = apps_installed.lat
     user_apps.lon = apps_installed.lon
     key = f"{apps_installed.dev_type}:{apps_installed.dev_id}"
     user_apps.apps.extend(apps_installed.apps)
-
-    return key, user_apps
-
-
-def serialize_installed_apps(apps_installed: AppsInstalled) -> Tuple[str, str]:
-
-    key, user_apps = prepare_installed_apps_for_serialization(apps_installed)
     packed_user_apps = user_apps.SerializeToString()
 
     return key, packed_user_apps
@@ -248,13 +216,16 @@ def handle_single_file(file_path: str,
 
     for storage_id, memcached_address in device_memcached.items():
         uploading_queue: queue.Queue = queue.Queue()
+        storage = KeyValueStorage(
+            address=memcached_address,
+            retries_limit=max_retries_number,
+            timeout=timeout,
+            dry_run=dry_run
+        )
         uploading_thread = MemcachedUploader(
             job_queue=uploading_queue,
             results_report_queue=result_stats_queue,
-            memcached_address=memcached_address,
-            timeout=timeout,
-            retries_limit=max_retries_number,
-            dry_run=dry_run
+            storage=storage
         )
         uploading_threads[storage_id] = uploading_thread
         uploading_queues[storage_id] = uploading_queue
@@ -335,9 +306,13 @@ def main(arguments):
         for file_path in glob.iglob(arguments.pattern)
     )
 
-    with mp.Pool(os.cpu_count()) as pool:
-        files_uploaded = pool.starmap(handle_single_file, arguments_for_uploading)
-    
+    try:
+        with mp.Pool(os.cpu_count()) as pool:
+            files_uploaded = pool.starmap(handle_single_file, arguments_for_uploading)
+    except KeyboardInterrupt:
+        logging.error("Interrupted by user")
+        sys.exit(1)
+
     for file in files_uploaded:
         dot_rename(file)
 
