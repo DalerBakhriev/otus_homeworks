@@ -240,13 +240,12 @@ if __name__ == "__main__":
     arg_parser.add_argument("--debug", action="store_true", default=False, help="Run in debug mode")
     args = arg_parser.parse_args()
 
-    logging.info("Started to parse %s with parameters %s", TARGET_URL, args)
-
     logging.basicConfig(
         format="[%(asctime)s] %(levelname).1s %(message)s",
         datefmt="%Y.%m.%d %H:%M:%S",
         level=logging.DEBUG if args.debug else logging.INFO
     )
+    logging.info("Started to parse %s with parameters %s", TARGET_URL, args)
 
     make_directory(RESULTS_ROOT_DIR)
     uvloop.install()
