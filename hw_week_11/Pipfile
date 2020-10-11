@@ -9,6 +9,7 @@ verify_ssl = true
 aiohttp = "*"
 beautifulsoup4 = "*"
 requests = "*"
+uvloop = "*"
 
 [requires]
 python_version = "3.8"
