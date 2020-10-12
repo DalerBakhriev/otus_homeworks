@@ -330,7 +330,6 @@ func main() {
 	wg.Wait()
 
 	for _, matchedFileName := range patternMatches {
-		log.Printf("Started to rename file %s", matchedFileName)
 		err := DotRename(matchedFileName)
 		if err != nil {
 			log.Printf("Error during dotting file %s", matchedFileName)
