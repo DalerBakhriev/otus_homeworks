@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	sync "sync"
+	"sync"
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -313,6 +313,11 @@ func main() {
 	patternMatches, err := filepath.Glob(pattern)
 	if err != nil {
 		log.Fatal("Something went wrong during parsing pattern")
+	}
+
+	if len(patternMatches) == 0 {
+		log.Printf("Haven't found matched file names for pattern %s", pattern)
+		os.Exit(0)
 	}
 
 	workersNumber := minWorkersNum(len(patternMatches), goroutinesNum)
