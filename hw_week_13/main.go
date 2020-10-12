@@ -25,7 +25,7 @@ const (
 // AppsInstalled ...
 type AppsInstalled struct {
 	DevType string
-	DevId   string
+	DevID   string
 	Lat     float64
 	Lon     float64
 	Apps    []uint32
@@ -52,12 +52,12 @@ func DotRename(path string) error {
 }
 
 // SerializeInstalledApps ...
-func SerializeInstalleApps(ai *AppsInstalled) (string, string) {
+func SerializeInstalledApps(ai *AppsInstalled) (string, string) {
 
 	userApps := &UserApps{}
 	userApps.Lat = ai.Lat
 	userApps.Lon = ai.Lon
-	key := strings.Join([]string{ai.DevType, ai.DevId}, ":")
+	key := strings.Join([]string{ai.DevType, ai.DevID}, ":")
 	userApps.Apps = append(userApps.Apps, ai.Apps...)
 	packedUserApps := userApps.String()
 
@@ -75,12 +75,12 @@ func ParseAppsInstalled(line string) (*AppsInstalled, error) {
 	}
 
 	devType := lineParts[0]
-	devId := lineParts[1]
+	devID := lineParts[1]
 	lat := lineParts[2]
 	lon := lineParts[3]
 	rawApps := lineParts[4]
 
-	if devType == "" || devId == "" {
+	if devType == "" || devID == "" {
 		return nil, errors.New("Haven't found dev type or dev id")
 	}
 
@@ -111,7 +111,7 @@ func ParseAppsInstalled(line string) (*AppsInstalled, error) {
 
 	appsInstalled := &AppsInstalled{
 		DevType: devType,
-		DevId:   devId,
+		DevID:   devID,
 		Lat:     latAsFloat,
 		Lon:     lonAsFloat,
 		Apps:    apps,
@@ -120,6 +120,7 @@ func ParseAppsInstalled(line string) (*AppsInstalled, error) {
 	return appsInstalled, nil
 }
 
+// UploadToMemcache ...
 func UploadToMemcache(
 	client *memcache.Client,
 	uploadChan <-chan map[string]string,
@@ -168,6 +169,7 @@ func UploadToMemcache(
 	}
 }
 
+// HandleSingleFile ...
 func HandleSingleFile(fileName string, clients map[string]*memcache.Client, retriesLimit int) {
 
 	uploadingChans := make(map[string]chan map[string]string)
@@ -222,7 +224,7 @@ func HandleSingleFile(fileName string, clients map[string]*memcache.Client, retr
 			continue
 		}
 
-		key, packedUserApps := SerializeInstalleApps(appsInstalled)
+		key, packedUserApps := SerializeInstalledApps(appsInstalled)
 		uploadingChans[appsInstalled.DevType] <- map[string]string{
 			key: packedUserApps,
 		}
