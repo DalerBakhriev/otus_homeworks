@@ -22,7 +22,6 @@ const (
 	goroutinesNum          int     = 6
 )
 
-// AppsInstalled ...
 type AppsInstalled struct {
 	DevType string
 	DevID   string
@@ -31,13 +30,11 @@ type AppsInstalled struct {
 	Apps    []uint32
 }
 
-// ProcessResultReport ...
 type ProcessResultReport struct {
 	numProcessed int
 	numErrors    int
 }
 
-// DotRename ...
 func DotRename(path string) error {
 
 	head, fileName := filepath.Split(path)
@@ -51,7 +48,6 @@ func DotRename(path string) error {
 	return nil
 }
 
-// SerializeInstalledApps ...
 func SerializeInstalledApps(ai *AppsInstalled) (string, string) {
 
 	userApps := &UserApps{}
@@ -64,7 +60,6 @@ func SerializeInstalledApps(ai *AppsInstalled) (string, string) {
 	return key, packedUserApps
 }
 
-// ParseAppsInstalled ...
 func ParseAppsInstalled(line string) (*AppsInstalled, error) {
 
 	strippedLine := strings.Trim(line, " ")
@@ -120,11 +115,10 @@ func ParseAppsInstalled(line string) (*AppsInstalled, error) {
 	return appsInstalled, nil
 }
 
-// UploadToMemcache ...
 func UploadToMemcache(
 	client *memcache.Client,
 	uploadChan <-chan map[string]string,
-	resultChan chan<- ProcessResultReport,
+	resultChan chan<- *ProcessResultReport,
 	retriesLimit int,
 	wg *sync.WaitGroup,
 ) {
@@ -163,13 +157,12 @@ func UploadToMemcache(
 		totalNumProcessed += numProcessed
 	}
 
-	resultChan <- ProcessResultReport{
+	resultChan <- &ProcessResultReport{
 		numErrors:    totalNumErrors,
 		numProcessed: totalNumProcessed,
 	}
 }
 
-// HandleSingleFile ...
 func HandleSingleFile(fileName string, clients map[string]*memcache.Client, retriesLimit int) {
 
 	uploadingChans := make(map[string]chan map[string]string)
@@ -177,7 +170,7 @@ func HandleSingleFile(fileName string, clients map[string]*memcache.Client, retr
 		uploadingChans[devType] = make(chan map[string]string, tasksChannelBufferSize)
 	}
 
-	processResultChan := make(chan ProcessResultReport, tasksChannelBufferSize)
+	processResultChan := make(chan *ProcessResultReport, tasksChannelBufferSize)
 	wg := &sync.WaitGroup{}
 	for devType, client := range clients {
 		wg.Add(1)
@@ -203,6 +196,7 @@ func HandleSingleFile(fileName string, clients map[string]*memcache.Client, retr
 	numProcessed, numErrors := 0, 0
 
 	for scanner.Scan() {
+
 		line := scanner.Text()
 		lineStripped := strings.Trim(line, " ")
 
@@ -234,14 +228,12 @@ func HandleSingleFile(fileName string, clients map[string]*memcache.Client, retr
 		close(uploadingChan)
 	}
 
-	numReceivedReports := 0
+	wg.Wait()
+	close(processResultChan)
+
 	for processResultReport := range processResultChan {
 		numProcessed += processResultReport.numProcessed
 		numErrors += processResultReport.numErrors
-		numReceivedReports++
-		if numReceivedReports == len(uploadingChans) {
-			break
-		}
 	}
 
 	errRate := 1.0
@@ -254,11 +246,8 @@ func HandleSingleFile(fileName string, clients map[string]*memcache.Client, retr
 	} else {
 		log.Printf("High error rate (%f > %f). Failed load.", errRate, normalErrRate)
 	}
-
-	wg.Wait()
 }
 
-// HandleFiles ...
 func HandleFiles(taskChan <-chan string, clients map[string]*memcache.Client, retriesLimit int, wg *sync.WaitGroup) {
 
 	defer wg.Done()
